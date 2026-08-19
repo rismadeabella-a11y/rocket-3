@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>Space Courier: Astro Delivery</title>
+  <title>Space Courier: Angular Challenge</title>
   <style>
     * {
       margin: 0;
@@ -30,6 +30,20 @@
       font-weight: bold;
       text-shadow: 0 0 8px #00f0ff;
       z-index: 10;
+    }
+    #level-toast {
+      position: absolute;
+      top: 40%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 36px;
+      font-weight: 900;
+      color: #ffe600;
+      text-shadow: 0 0 20px #ffe600;
+      opacity: 0;
+      transition: opacity 0.4s ease-in-out;
+      pointer-events: none;
+      z-index: 15;
     }
     #touch-controls {
       position: absolute;
@@ -115,8 +129,10 @@
 <body>
 
   <div id="ui">
-    Level: <span id="level" style="color: #ffe600;">1</span> | Skor: <span id="score">0</span> | Nyawa: <span id="lives">3</span>
+    LEVEL: <span id="level" style="color: #ffe600;">1</span> | Skor: <span id="score">0</span> | Nyawa: <span id="lives">3</span>
   </div>
+
+  <div id="level-toast">LEVEL UP!</div>
 
   <div id="touch-controls">
     <div class="dpad">
@@ -130,7 +146,7 @@
 
   <div id="game-over">
     <h1>Misi Gagal!</h1>
-    <p>Roket hancur oleh ancaman luar angkasa!</p>
+    <p>Roket kamu hancur tertabrak rintangan!</p>
     <p>Skor Akhir: <span id="final-score">0</span></p>
     <button onclick="restartGame()">Coba Lagi</button>
   </div>
@@ -143,6 +159,7 @@
     const scoreEl = document.getElementById('score');
     const levelEl = document.getElementById('level');
     const livesEl = document.getElementById('lives');
+    const toastEl = document.getElementById('level-toast');
     const gameOverEl = document.getElementById('game-over');
     const finalScoreEl = document.getElementById('final-score');
 
@@ -154,55 +171,50 @@
     let lives = 3;
     let isGameOver = false;
     let animationId;
+    let bgOffsetY = 0;
 
-    // --- TEMA BACKGROUND BERDASARKAN LEVEL ---
+    // --- TEMA BACKGROUND DAN KISI WARP BERDASARKAN LEVEL ---
     const bgThemes = [
-      { top: '#020012', mid: '#0d0826', bottom: '#1a0b36' }, // Level 1: Deep Space
-      { top: '#19002e', mid: '#2b0040', bottom: '#4a004e' }, // Level 2: Purple Nebula
-      { top: '#001a2c', mid: '#00334e', bottom: '#005570' }, // Level 3: Cyber Blue
-      { top: '#2b0000', mid: '#4a0d0d', bottom: '#701c00' }, // Level 4: Solar Flare
-      { top: '#0d2b00', mid: '#1c4a00', bottom: '#2d7000' }  // Level 5+: Toxic Galaxy
+      { bg1: '#05021a', bg2: '#0f0838', grid: '#00f0ff', name: 'CYBER MATRIX' },
+      { bg1: '#1f0015', bg2: '#40002b', grid: '#ff00aa', name: 'NEON NEBULA' },
+      { bg1: '#001b24', bg2: '#003d36', grid: '#00ffaa', name: 'GREEN GRID' },
+      { bg1: '#260c00', bg2: '#4a1d00', grid: '#ffe600', name: 'SOLAR STORM' },
+      { bg1: '#1a0033', bg2: '#330066', grid: '#b300ff', name: 'VOID REALM' }
     ];
 
     function drawDynamicBackground() {
       const themeIndex = Math.min(level - 1, bgThemes.length - 1);
       const theme = bgThemes[themeIndex];
 
+      // Gradien Latar
       const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
-      gradient.addColorStop(0, theme.top);
-      gradient.addColorStop(0.5, theme.mid);
-      gradient.addColorStop(1, theme.bottom);
-
+      gradient.addColorStop(0, theme.bg1);
+      gradient.addColorStop(1, theme.bg2);
       ctx.fillStyle = gradient;
       ctx.fillRect(0, 0, canvas.width, canvas.height);
-    }
 
-    // --- BINTANG LATAR BELAKANG ---
-    const stars = [];
-    for (let i = 0; i < 130; i++) {
-      stars.push({
-        x: Math.random() * canvas.width,
-        y: Math.random() * canvas.height,
-        radius: Math.random() * 1.8 + 0.5,
-        alpha: Math.random(),
-        speed: Math.random() * 0.02 + 0.005,
-        color: ['#ffffff', '#00f0ff', '#ff00ea', '#ffe600'][Math.floor(Math.random() * 4)]
-      });
-    }
+      // Garis Kecepatan Warp (Perspektif Persegi)
+      ctx.save();
+      ctx.strokeStyle = theme.grid;
+      ctx.globalAlpha = 0.18;
+      ctx.lineWidth = 1.5;
 
-    function drawStars() {
-      stars.forEach(star => {
-        star.alpha += star.speed;
-        if (star.alpha > 1 || star.alpha < 0) star.speed = -star.speed;
+      bgOffsetY = (bgOffsetY + 2 + level) % 40;
 
-        ctx.save();
-        ctx.globalAlpha = Math.abs(star.alpha);
-        ctx.fillStyle = star.color;
+      for (let x = 0; x < canvas.width; x += 50) {
         ctx.beginPath();
-        ctx.arc(star.x, star.y, star.radius, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.restore();
-      });
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, canvas.height);
+        ctx.stroke();
+      }
+
+      for (let y = bgOffsetY; y < canvas.height; y += 40) {
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(canvas.width, y);
+        ctx.stroke();
+      }
+      ctx.restore();
     }
 
     // --- ROKET PLAYER ---
@@ -277,6 +289,7 @@
       ctx.save();
       ctx.translate(rocket.x, rocket.y);
 
+      // Api pendorong
       ctx.fillStyle = '#ff5500';
       ctx.shadowBlur = 15;
       ctx.shadowColor = '#ff0055';
@@ -287,6 +300,7 @@
       ctx.closePath();
       ctx.fill();
 
+      // Badan roket tajam
       ctx.fillStyle = '#e0e0e0';
       ctx.shadowBlur = 10;
       ctx.shadowColor = '#00f0ff';
@@ -297,9 +311,14 @@
       ctx.closePath();
       ctx.fill();
 
+      // Kaca cockpit belah ketupat
       ctx.fillStyle = '#00f0ff';
       ctx.beginPath();
-      ctx.arc(0, -6, 7, 0, Math.PI * 2);
+      ctx.moveTo(0, -15);
+      ctx.lineTo(6, -5);
+      ctx.lineTo(0, 5);
+      ctx.lineTo(-6, -5);
+      ctx.closePath();
       ctx.fill();
 
       ctx.restore();
@@ -338,63 +357,151 @@
       if (lives <= 0) endGame();
     }
 
-    // --- RINTANGAN 1: UFO ALIEN ---
-    const ufos = [];
-    const enemyLasers = [];
+    // --- RINTANGAN 1: KRISTAL SEGI BANYAK TAJAM (Substitusi Meteor Bundar) ---
+    const crystals = [];
 
-    function spawnUFO() {
-      if (Math.random() < 0.015 + level * 0.003 && ufos.length < 3 + level) {
-        const fromLeft = Math.random() < 0.5;
-        ufos.push({
-          x: fromLeft ? -40 : canvas.width + 40,
-          y: Math.random() * (canvas.height / 3) + 60,
-          speed: (Math.random() * 2 + 2 + level * 0.5) * (fromLeft ? 1 : -1),
-          radius: 22,
-          hp: 2 + Math.floor(level / 2)
+    function spawnCrystal() {
+      if (Math.random() < 0.03 + level * 0.005) {
+        const points = [];
+        const numPoints = 6;
+        const baseRadius = Math.random() * 15 + 20;
+        for (let i = 0; i < numPoints; i++) {
+          const angle = (i / numPoints) * Math.PI * 2;
+          const r = baseRadius * (0.6 + Math.random() * 0.7); // Bikin bersudut runcing
+          points.push({ x: Math.cos(angle) * r, y: Math.sin(angle) * r });
+        }
+
+        crystals.push({
+          x: Math.random() * (canvas.width - 60) + 30,
+          y: -40,
+          points: points,
+          radius: baseRadius,
+          angle: 0,
+          rotSpeed: (Math.random() - 0.5) * 0.08,
+          speed: Math.random() * 2.5 + 2.5 + level * 0.4,
+          hp: 2
         });
       }
     }
 
-    function updateUFOs() {
-      for (let i = ufos.length - 1; i >= 0; i--) {
-        let u = ufos[i];
-        u.x += u.speed;
+    function updateCrystals() {
+      for (let i = crystals.length - 1; i >= 0; i--) {
+        let c = crystals[i];
+        c.y += c.speed;
+        c.angle += c.rotSpeed;
 
         ctx.save();
-        ctx.fillStyle = '#39ff14';
-        ctx.shadowBlur = 15;
-        ctx.shadowColor = '#39ff14';
-        ctx.beginPath();
-        ctx.ellipse(u.x, u.y, u.radius, u.radius / 2, 0, 0, Math.PI * 2);
-        ctx.fill();
+        ctx.translate(c.x, c.y);
+        ctx.rotate(c.angle);
+        ctx.strokeStyle = '#ff2200';
+        ctx.fillStyle = '#ff5500';
+        ctx.shadowBlur = 12;
+        ctx.shadowColor = '#ff2200';
+        ctx.lineWidth = 2;
 
-        ctx.fillStyle = '#00ffff';
         ctx.beginPath();
-        ctx.arc(u.x, u.y - 4, 8, 0, Math.PI, true);
+        ctx.moveTo(c.points[0].x, c.points[0].y);
+        for (let p = 1; p < c.points.length; p++) {
+          ctx.lineTo(c.points[p].x, c.points[p].y);
+        }
+        ctx.closePath();
         ctx.fill();
+        ctx.stroke();
         ctx.restore();
 
-        if (Math.random() < 0.02 + level * 0.005) {
-          enemyLasers.push({ x: u.x, y: u.y + 10, speed: 6 + level * 0.5 });
-        }
-
+        // Cek Tembakan Player
         for (let j = playerBullets.length - 1; j >= 0; j--) {
           let pb = playerBullets[j];
-          const dist = Math.hypot(u.x - pb.x, u.y - pb.y);
-          if (dist < u.radius + 5) {
-            u.hp--;
+          const dist = Math.hypot(c.x - pb.x, c.y - pb.y);
+          if (dist < c.radius) {
+            c.hp--;
             playerBullets.splice(j, 1);
-            if (u.hp <= 0) {
-              score += 150;
-              ufos.splice(i, 1);
+            if (c.hp <= 0) {
+              score += 60;
+              crystals.splice(i, 1);
               break;
             }
           }
         }
 
-        if ((u.speed > 0 && u.x > canvas.width + 50) || (u.speed < 0 && u.x < -50)) {
-          ufos.splice(i, 1);
+        // Tabrakan ke Player
+        const distToRocket = Math.hypot(rocket.x - c.x, rocket.y - c.y);
+        if (distToRocket < c.radius + rocket.width / 2) {
+          hitPlayer();
+          crystals.splice(i, 1);
+          continue;
         }
+
+        if (c.y - c.radius > canvas.height) crystals.splice(i, 1);
+      }
+    }
+
+    // --- RINTANGAN 2: PESAWAT JET TEMPUR SEGITIGA (Substitusi UFO) ---
+    const enemyJets = [];
+    const enemyLasers = [];
+
+    function spawnEnemyJet() {
+      if (Math.random() < 0.015 + level * 0.003 && enemyJets.length < 2 + level) {
+        enemyJets.push({
+          x: Math.random() * (canvas.width - 60) + 30,
+          y: -50,
+          speedY: Math.random() * 1.5 + 2 + level * 0.3,
+          speedX: (Math.random() - 0.5) * 3,
+          width: 32,
+          height: 40,
+          hp: 2
+        });
+      }
+    }
+
+    function updateEnemyJets() {
+      for (let i = enemyJets.length - 1; i >= 0; i--) {
+        let j = enemyJets[i];
+        j.y += j.speedY;
+        j.x += j.speedX;
+
+        if (j.x < 30 || j.x > canvas.width - 30) j.speedX *= -1;
+
+        ctx.save();
+        ctx.translate(j.x, j.y);
+        ctx.fillStyle = '#39ff14';
+        ctx.strokeStyle = '#00ffcc';
+        ctx.shadowBlur = 12;
+        ctx.shadowColor = '#39ff14';
+        ctx.lineWidth = 2;
+
+        // Pesawat Segitiga Runcing
+        ctx.beginPath();
+        ctx.moveTo(0, j.height / 2);
+        ctx.lineTo(-j.width / 2, -j.height / 2);
+        ctx.lineTo(0, -j.height / 4);
+        ctx.lineTo(j.width / 2, -j.height / 2);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+        ctx.restore();
+
+        // Tembak Laser Kotak
+        if (Math.random() < 0.02 + level * 0.005) {
+          enemyLasers.push({ x: j.x, y: j.y + 15, speed: 7 + level * 0.5 });
+        }
+
+        // Kena peluru player
+        for (let k = playerBullets.length - 1; k >= 0; k--) {
+          let pb = playerBullets[k];
+          const dist = Math.hypot(j.x - pb.x, j.y - pb.y);
+          if (dist < j.width / 1.5) {
+            j.hp--;
+            playerBullets.splice(k, 1);
+            if (j.hp <= 0) {
+              score += 150;
+              enemyJets.splice(i, 1);
+              break;
+            }
+          }
+        }
+
+        if (j.y > canvas.height + 50) enemyJets.splice(i, 1);
       }
     }
 
@@ -407,7 +514,7 @@
         ctx.fillStyle = '#ff0055';
         ctx.shadowBlur = 10;
         ctx.shadowColor = '#ff0055';
-        ctx.fillRect(l.x - 2, l.y, 4, 15);
+        ctx.fillRect(l.x - 3, l.y, 6, 16);
         ctx.restore();
 
         const dist = Math.hypot(rocket.x - l.x, rocket.y - l.y);
@@ -421,118 +528,76 @@
       }
     }
 
-    // --- RINTANGAN 2: METEOR biasa & METEOR EMAS ---
-    const meteors = [];
+    // --- RINTANGAN 3: SATELIT DENGAN PANEL SURYA PERSEGI ---
+    const satellites = [];
 
-    function spawnMeteor() {
-      if (Math.random() < 0.03 + level * 0.005) {
-        const isGold = Math.random() < 0.2;
-        const radius = Math.random() * 20 + 15;
-        meteors.push({
-          x: Math.random() * (canvas.width - radius * 2) + radius,
-          y: -radius,
-          radius: radius,
-          speed: Math.random() * 3 + 3 + level * 0.4,
-          isGold: isGold,
-          hp: isGold ? 3 : 1
+    function spawnSatellite() {
+      if (level >= 2 && Math.random() < 0.01) {
+        satellites.push({
+          x: Math.random() * (canvas.width - 80) + 40,
+          y: -50,
+          speed: Math.random() * 1.5 + 2,
+          angle: 0,
+          rotSpeed: 0.03,
+          size: 24
         });
       }
     }
 
-    function updateMeteors() {
-      for (let i = meteors.length - 1; i >= 0; i--) {
-        let m = meteors[i];
-        m.y += m.speed;
+    function updateSatellites() {
+      for (let i = satellites.length - 1; i >= 0; i--) {
+        let s = satellites[i];
+        s.y += s.speed;
+        s.angle += s.rotSpeed;
 
         ctx.save();
-        ctx.fillStyle = m.isGold ? '#ffe600' : '#ff5500';
+        ctx.translate(s.x, s.y);
+        ctx.rotate(s.angle);
+
+        // Badan Utama Persegi
+        ctx.fillStyle = '#ffe600';
         ctx.shadowBlur = 12;
-        ctx.shadowColor = m.isGold ? '#ffe600' : '#ff2200';
-        ctx.beginPath();
-        ctx.arc(m.x, m.y, m.radius, 0, Math.PI * 2);
-        ctx.fill();
+        ctx.shadowColor = '#ffe600';
+        ctx.fillRect(-10, -10, 20, 20);
+
+        // Panel Surya Kiri & Kanan (Persegi Panjang)
+        ctx.fillStyle = '#00f0ff';
+        ctx.fillRect(-30, -5, 18, 10);
+        ctx.fillRect(12, -5, 18, 10);
+
         ctx.restore();
 
+        // Tembak Peluru
         for (let j = playerBullets.length - 1; j >= 0; j--) {
           let pb = playerBullets[j];
-          const dist = Math.hypot(m.x - pb.x, m.y - pb.y);
-          if (dist < m.radius) {
-            m.hp--;
-            playerBullets.splice(j, 1);
-            if (m.hp <= 0) {
-              score += m.isGold ? 200 : 50;
-              meteors.splice(i, 1);
-              break;
-            }
-          }
-        }
-
-        const distToRocket = Math.hypot(rocket.x - m.x, rocket.y - m.y);
-        if (distToRocket < m.radius + rocket.width / 2) {
-          hitPlayer();
-          meteors.splice(i, 1);
-          continue;
-        }
-
-        if (m.y - m.radius > canvas.height) meteors.splice(i, 1);
-      }
-    }
-
-    // --- RINTANGAN 3 (BARU): RANAU PLASMA (MUNCUL PADA LEVEL 2+) ---
-    const plasmaMines = [];
-
-    function spawnPlasmaMine() {
-      if (level >= 2 && Math.random() < 0.012) {
-        plasmaMines.push({
-          x: Math.random() * (canvas.width - 60) + 30,
-          y: -30,
-          radius: 18,
-          speed: Math.random() * 1.5 + 1.5,
-          pulse: 0
-        });
-      }
-    }
-
-    function updatePlasmaMines() {
-      for (let i = plasmaMines.length - 1; i >= 0; i--) {
-        let p = plasmaMines[i];
-        p.y += p.speed;
-        p.pulse += 0.08;
-
-        const currentRadius = p.radius + Math.sin(p.pulse) * 4;
-
-        ctx.save();
-        ctx.fillStyle = '#bf00ff';
-        ctx.shadowBlur = 20;
-        ctx.shadowColor = '#bf00ff';
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, currentRadius, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.restore();
-
-        for (let j = playerBullets.length - 1; j >= 0; j--) {
-          let pb = playerBullets[j];
-          const dist = Math.hypot(p.x - pb.x, p.y - pb.y);
-          if (dist < currentRadius) {
-            score += 100;
-            plasmaMines.splice(i, 1);
+          const dist = Math.hypot(s.x - pb.x, s.y - pb.y);
+          if (dist < s.size) {
+            score += 120;
+            satellites.splice(i, 1);
             playerBullets.splice(j, 1);
             break;
           }
         }
 
-        const distToRocket = Math.hypot(rocket.x - p.x, rocket.y - p.y);
-        if (distToRocket < currentRadius + rocket.width / 2) {
+        // Tabrak Player
+        const distToRocket = Math.hypot(rocket.x - s.x, rocket.y - s.y);
+        if (distToRocket < s.size + rocket.width / 2) {
           hitPlayer();
-          plasmaMines.splice(i, 1);
+          satellites.splice(i, 1);
           continue;
         }
 
-        if (p.y - p.radius > canvas.height) plasmaMines.splice(i, 1);
+        if (s.y > canvas.height + 50) satellites.splice(i, 1);
       }
     }
 
-    // --- UPDATE LOGIK GAME & LEVEL ---
+    // --- LOGIKA LEVEL & UPDATE SYSTEM ---
+    function triggerLevelToast(lvlName) {
+      toastEl.innerText = `LEVEL ${level}: ${lvlName}`;
+      toastEl.style.opacity = '1';
+      setTimeout(() => { toastEl.style.opacity = '0'; }, 1800);
+    }
+
     function update() {
       if (moveLeft) rocket.x -= rocket.speed;
       if (moveRight) rocket.x += rocket.speed;
@@ -549,11 +614,13 @@
       score += 1;
       scoreEl.innerText = Math.floor(score / 5);
 
-      // Kenaikan Level setiap 300 Poin
+      // Naik Level setiap 300 Poin
       const newLevel = Math.floor(score / 1500) + 1;
       if (newLevel !== level) {
         level = newLevel;
         levelEl.innerText = level;
+        const themeIndex = Math.min(level - 1, bgThemes.length - 1);
+        triggerLevelToast(bgThemes[themeIndex].name);
       }
     }
 
@@ -565,10 +632,10 @@
     }
 
     function restartGame() {
-      ufos.length = 0;
+      crystals.length = 0;
+      enemyJets.length = 0;
       enemyLasers.length = 0;
-      meteors.length = 0;
-      plasmaMines.length = 0;
+      satellites.length = 0;
       playerBullets.length = 0;
       score = 0;
       level = 1;
@@ -588,21 +655,20 @@
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
       drawDynamicBackground();
-      drawStars();
       update();
       drawRocket();
 
       updatePlayerBullets();
 
-      spawnUFO();
-      updateUFOs();
+      spawnCrystal();
+      updateCrystals();
+
+      spawnEnemyJet();
+      updateEnemyJets();
       updateEnemyLasers();
 
-      spawnMeteor();
-      updateMeteors();
-
-      spawnPlasmaMine();
-      updatePlasmaMines();
+      spawnSatellite();
+      updateSatellites();
 
       animationId = requestAnimationFrame(gameLoop);
     }
