@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>Space Courier: Auto Fire</title>
+  <title>Space Courier: Auto Shooter</title>
   <style>
     * {
       margin: 0;
@@ -163,6 +163,7 @@
     let animationId;
     let bgOffsetY = 0;
     let colorHue = 0;
+    let shootTimer = 0; // PENANDA JEDA TEMBAKAN AUTOMATIS
 
     function drawDynamicBackground() {
       colorHue = (colorHue + 0.3 + level * 0.1) % 360;
@@ -206,8 +207,7 @@
       width: 36,
       height: 68,
       speed: 8,
-      invulnerable: 0,
-      lastShot: 0
+      invulnerable: 0
     };
 
     let moveLeft = false, moveRight = false, moveUp = false, moveDown = false;
@@ -298,13 +298,12 @@
       ctx.restore();
     }
 
-    function shoot() {
-      if (isGameOver) return;
-      const now = Date.now();
-      // Kecepatan tembak otomatis (setiap 140ms)
-      if (now - rocket.lastShot > 140) {
+    function autoShoot() {
+      shootTimer++;
+      // Menembak otomatis setiap 8 frame (sekitar 7 peluru per detik)
+      if (shootTimer >= 8) {
         playerBullets.push({ x: rocket.x, y: rocket.y - rocket.height / 2, speed: 14 });
-        rocket.lastShot = now;
+        shootTimer = 0;
       }
     }
 
@@ -584,8 +583,8 @@
     }
 
     function update() {
-      // TEMBAK OTOMATIS BERJALAN TERUS-MENERUS
-      shoot();
+      // PROSES TEMBAKAN OTOMATIS
+      autoShoot();
 
       if (moveLeft) rocket.x -= rocket.speed;
       if (moveRight) rocket.x += rocket.speed;
@@ -625,6 +624,7 @@
       score = 0;
       level = 1;
       lives = 3;
+      shootTimer = 0;
       livesEl.innerText = lives;
       levelEl.innerText = level;
       scoreEl.innerText = score;
