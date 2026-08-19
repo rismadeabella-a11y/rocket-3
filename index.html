@@ -25,32 +25,71 @@
       position: absolute;
       top: 20px;
       left: 20px;
-      font-size: 18px;
+      font-size: 20px;
       font-weight: bold;
       text-shadow: 0 0 8px #00f0ff;
+    }
+    #game-over {
+      display: none;
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      text-align: center;
+      background: rgba(10, 5, 30, 0.9);
+      padding: 30px;
+      border: 2px solid #ff0055;
+      border-radius: 12px;
+      box-shadow: 0 0 20px #ff0055;
+    }
+    #game-over h1 {
+      color: #ff0055;
+      font-size: 36px;
+      margin-bottom: 10px;
+    }
+    #game-over button {
+      margin-top: 15px;
+      padding: 10px 20px;
+      background: #00f0ff;
+      border: none;
+      color: #000;
+      font-weight: bold;
+      font-size: 16px;
+      cursor: pointer;
+      border-radius: 5px;
     }
   </style>
 </head>
 <body>
 
   <div id="ui">Skor: <span id="score">0</span></div>
+
+  <div id="game-over">
+    <h1>Misi Gagal!</h1>
+    <p>Roket kamu hancur tertabrak meteor.</p>
+    <p>Skor Akhir: <span id="final-score">0</span></p>
+    <button onclick="restartGame()">Coba Lagi</button>
+  </div>
+
   <canvas id="gameCanvas"></canvas>
 
   <script>
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
     const scoreEl = document.getElementById('score');
+    const gameOverEl = document.getElementById('game-over');
+    const finalScoreEl = document.getElementById('final-score');
 
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
 
     let score = 0;
+    let isGameOver = false;
+    let animationId;
 
-    // --- LATAR BELAKANG: BINTANG & DEBU KOSMIK ---
+    // --- LATAR BELAKANG ---
     const stars = [];
-    const numStars = 150;
-
-    for (let i = 0; i < numStars; i++) {
+    for (let i = 0; i < 150; i++) {
       stars.push({
         x: Math.random() * canvas.width,
         y: Math.random() * canvas.height,
@@ -62,12 +101,9 @@
     }
 
     function drawBackground() {
-      // Efek Bintang Berkedip (Twinkle Stars)
       stars.forEach(star => {
         star.alpha += star.speed;
-        if (star.alpha > 1 || star.alpha < 0) {
-          star.speed = -star.speed;
-        }
+        if (star.alpha > 1 || star.alpha < 0) star.speed = -star.speed;
 
         ctx.save();
         ctx.globalAlpha = Math.abs(star.alpha);
@@ -81,21 +117,20 @@
       });
     }
 
-    // --- ROKET (PLAYER) ---
+    // --- ROKET ---
     const rocket = {
       x: canvas.width / 2,
       y: canvas.height - 120,
       width: 30,
       height: 60,
-      speed: 7,
-      dx: 0
+      speed: 8
     };
 
     function drawRocket() {
       ctx.save();
       ctx.translate(rocket.x, rocket.y);
 
-      // Api Ekor Roket (Thruster Glow)
+      // Api Ekor
       ctx.fillStyle = '#ff5500';
       ctx.shadowBlur = 15;
       ctx.shadowColor = '#ff0055';
@@ -106,7 +141,7 @@
       ctx.closePath();
       ctx.fill();
 
-      // Badan Roket
+      // Badan
       ctx.fillStyle = '#e0e0e0';
       ctx.shadowBlur = 10;
       ctx.shadowColor = '#00f0ff';
@@ -117,7 +152,7 @@
       ctx.closePath();
       ctx.fill();
 
-      // Jendela Roket
+      // Jendela
       ctx.fillStyle = '#00f0ff';
       ctx.beginPath();
       ctx.arc(0, -5, 6, 0, Math.PI * 2);
@@ -126,42 +161,138 @@
       ctx.restore();
     }
 
-    // --- UTILS & KONTROL ---
-    let keys = {};
+    // --- TANTANGAN 1: METEOR ---
+    const meteors = [];
+    function spawnMeteor() {
+      if (Math.random() < 0.04) {
+        const radius = Math.random() * 20 + 15;
+        meteors.push({
+          x: Math.random() * (canvas.width - radius * 2) + radius,
+          y: -radius,
+          radius: radius,
+          speed: Math.random() * 3 + 3
+        });
+      }
+    }
 
-    window.addEventListener('keydown', (e) => keys[e.key] = true);
-    window.addEventListener('keyup', (e) => keys[e.key] = false);
+    function updateMeteors() {
+      for (let i = meteors.length - 1; i >= 0; i--) {
+        let m = meteors[i];
+        m.y += m.speed;
+
+        // Gambar Meteor
+        ctx.save();
+        ctx.fillStyle = '#ff3300';
+        ctx.shadowBlur = 12;
+        ctx.shadowColor = '#ff6600';
+        ctx.beginPath();
+        ctx.arc(m.x, m.y, m.radius, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+
+        // Deteksi Tabrakan dengan Roket
+        const dist = Math.hypot(rocket.x - m.x, rocket.y - m.y);
+        if (dist < m.radius + rocket.width / 2) {
+          endGame();
+        }
+
+        if (m.y - m.radius > canvas.height) meteors.splice(i, 1);
+      }
+    }
+
+    // --- TANTANGAN 2: KRISTAL KARGO ---
+    const crystals = [];
+    function spawnCrystal() {
+      if (Math.random() < 0.015) {
+        crystals.push({
+          x: Math.random() * (canvas.width - 40) + 20,
+          y: -20,
+          size: 15,
+          speed: 2.5
+        });
+      }
+    }
+
+    function updateCrystals() {
+      for (let i = crystals.length - 1; i >= 0; i--) {
+        let c = crystals[i];
+        c.y += c.speed;
+
+        // Gambar Kristal
+        ctx.save();
+        ctx.fillStyle = '#00ffff';
+        ctx.shadowBlur = 15;
+        ctx.shadowColor = '#00ffff';
+        ctx.beginPath();
+        ctx.rect(c.x - c.size / 2, c.y - c.size / 2, c.size, c.size);
+        ctx.fill();
+        ctx.restore();
+
+        // Ambil Kristal
+        const dist = Math.hypot(rocket.x - c.x, rocket.y - c.y);
+        if (dist < c.size + rocket.width / 2) {
+          score += 150;
+          crystals.splice(i, 1);
+          continue;
+        }
+
+        if (c.y > canvas.height) crystals.splice(i, 1);
+      }
+    }
+
+    // --- KONTROL & GAMELOOP ---
+    let keys = {};
+    window.addEventListener('keydown', e => keys[e.key] = true);
+    window.addEventListener('keyup', e => keys[e.key] = false);
 
     function update() {
-      // Pergerakan Roket
-      if (keys['ArrowLeft'] || keys['a']) {
-        rocket.x -= rocket.speed;
-      }
-      if (keys['ArrowRight'] || keys['d']) {
-        rocket.x += rocket.speed;
-      }
+      if (keys['ArrowLeft'] || keys['a']) rocket.x -= rocket.speed;
+      if (keys['ArrowRight'] || keys['d']) rocket.x += rocket.speed;
 
-      // Batas Layar
       if (rocket.x - rocket.width / 2 < 0) rocket.x = rocket.width / 2;
       if (rocket.x + rocket.width / 2 > canvas.width) rocket.x = canvas.width - rocket.width / 2;
 
       score += 1;
-      scoreEl.innerText = Math.floor(score / 10);
+      scoreEl.innerText = Math.floor(score / 5);
+    }
+
+    function endGame() {
+      isGameOver = true;
+      finalScoreEl.innerText = Math.floor(score / 5);
+      gameOverEl.style.display = 'block';
+      cancelAnimationFrame(animationId);
+    }
+
+    function restartGame() {
+      meteors.length = 0;
+      crystals.length = 0;
+      score = 0;
+      rocket.x = canvas.width / 2;
+      isGameOver = false;
+      gameOverEl.style.display = 'none';
+      gameLoop();
     }
 
     function gameLoop() {
+      if (isGameOver) return;
+
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
       drawBackground();
       update();
       drawRocket();
 
-      requestAnimationFrame(gameLoop);
+      spawnMeteor();
+      updateMeteors();
+
+      spawnCrystal();
+      updateCrystals();
+
+      animationId = requestAnimationFrame(gameLoop);
     }
 
     gameLoop();
 
-    // Responsif jika ukuran browser diubah
     window.addEventListener('resize', () => {
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
