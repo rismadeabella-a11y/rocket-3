@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>Space Courier: Colorful Edition</title>
+  <title>Space Courier: Alien Invasion</title>
   <style>
     * {
       margin: 0;
@@ -179,21 +179,18 @@
 
     // --- LATAR BELAKANG WARNA-WARNI DINAMIS ---
     function drawDynamicBackground() {
-      // Warna berganti terus secara halus menggunakan HSL
       colorHue = (colorHue + 0.3 + level * 0.1) % 360;
 
       const mainColor = `hsl(${colorHue}, 70%, 15%)`;
       const secondaryColor = `hsl(${(colorHue + 60) % 360}, 80%, 8%)`;
       const gridColor = `hsl(${(colorHue + 180) % 360}, 100%, 50%)`;
 
-      // Gradien Latar Belakang BERWARNA
       const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
       gradient.addColorStop(0, mainColor);
       gradient.addColorStop(1, secondaryColor);
       ctx.fillStyle = gradient;
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-      // Kisi-kisi Neon Bergerak Berwarna
       ctx.save();
       ctx.strokeStyle = gridColor;
       ctx.globalAlpha = 0.25;
@@ -300,7 +297,7 @@
       ctx.closePath();
       ctx.fill();
 
-      // Badan roket tajam
+      // Badan roket
       ctx.fillStyle = '#ffffff';
       ctx.shadowBlur = 12;
       ctx.shadowColor = '#00f0ff';
@@ -311,7 +308,7 @@
       ctx.closePath();
       ctx.fill();
 
-      // Cockpit belah ketupat
+      // Cockpit
       ctx.fillStyle = '#00f0ff';
       ctx.beginPath();
       ctx.moveTo(0, -15);
@@ -357,86 +354,114 @@
       if (lives <= 0) endGame();
     }
 
-    // --- RINTANGAN TAJAM 1: KRISTAL ---
-    const crystals = [];
+    // --- RINTANGAN 1: WAJAH ALIEN (MENGGANTIKAN KRISTAL MERAH) ---
+    const aliens = [];
 
-    function spawnCrystal() {
+    function spawnAlien() {
       if (Math.random() < 0.03 + level * 0.005) {
-        const points = [];
-        const numPoints = 6;
-        const baseRadius = Math.random() * 15 + 20;
-        for (let i = 0; i < numPoints; i++) {
-          const angle = (i / numPoints) * Math.PI * 2;
-          const r = baseRadius * (0.6 + Math.random() * 0.7);
-          points.push({ x: Math.cos(angle) * r, y: Math.sin(angle) * r });
-        }
-
-        crystals.push({
+        aliens.push({
           x: Math.random() * (canvas.width - 60) + 30,
-          y: -40,
-          points: points,
-          radius: baseRadius,
-          angle: 0,
-          rotSpeed: (Math.random() - 0.5) * 0.08,
+          y: -50,
+          radius: 25,
           speed: Math.random() * 2.5 + 2.5 + level * 0.4,
           hp: 2
         });
       }
     }
 
-    function updateCrystals() {
-      for (let i = crystals.length - 1; i >= 0; i--) {
-        let c = crystals[i];
-        c.y += c.speed;
-        c.angle += c.rotSpeed;
+    function updateAliens() {
+      for (let i = aliens.length - 1; i >= 0; i--) {
+        let a = aliens[i];
+        a.y += a.speed;
 
         ctx.save();
-        ctx.translate(c.x, c.y);
-        ctx.rotate(c.angle);
-        ctx.strokeStyle = '#ff3300';
-        ctx.fillStyle = '#ff6600';
-        ctx.shadowBlur = 12;
-        ctx.shadowColor = '#ff3300';
+        ctx.translate(a.x, a.y);
+
+        // Kepala Alien (Bentuk Segitiga Runcing / Oval Terbalik)
+        ctx.fillStyle = '#00ff44';
+        ctx.strokeStyle = '#aaff00';
         ctx.lineWidth = 2;
+        ctx.shadowBlur = 12;
+        ctx.shadowColor = '#00ff44';
 
         ctx.beginPath();
-        ctx.moveTo(c.points[0].x, c.points[0].y);
-        for (let p = 1; p < c.points.length; p++) {
-          ctx.lineTo(c.points[p].x, c.points[p].y);
-        }
+        ctx.moveTo(0, 25);           // Dagu Runcing
+        ctx.lineTo(-24, -10);        // Pipi Kiri
+        ctx.lineTo(-18, -25);        // Dahi Kiri
+        ctx.lineTo(18, -25);         // Dahi Kanan
+        ctx.lineTo(24, -10);         // Pipi Kanan
         ctx.closePath();
         ctx.fill();
         ctx.stroke();
+
+        // Mata Kiri Alien (Besar & Miring)
+        ctx.fillStyle = '#000000';
+        ctx.save();
+        ctx.translate(-9, -6);
+        ctx.rotate(-0.3);
+        ctx.beginPath();
+        ctx.ellipse(0, 0, 7, 12, 0, 0, Math.PI * 2);
+        ctx.fill();
+        // Kilau Mata Kiri
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath();
+        ctx.arc(-2, -4, 2, 0, Math.PI * 2);
+        ctx.fill();
         ctx.restore();
 
-        // Cek Peluru
+        // Mata Kanan Alien (Besar & Miring)
+        ctx.fillStyle = '#000000';
+        ctx.save();
+        ctx.translate(9, -6);
+        ctx.rotate(0.3);
+        ctx.beginPath();
+        ctx.ellipse(0, 0, 7, 12, 0, 0, Math.PI * 2);
+        ctx.fill();
+        // Kilau Mata Kanan
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath();
+        ctx.arc(-2, -4, 2, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+
+        // Mulut Alien
+        ctx.strokeStyle = '#005511';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(-5, 12);
+        ctx.lineTo(5, 12);
+        ctx.stroke();
+
+        ctx.restore();
+
+        // Cek Peluru Player
         for (let j = playerBullets.length - 1; j >= 0; j--) {
           let pb = playerBullets[j];
-          const dist = Math.hypot(c.x - pb.x, c.y - pb.y);
-          if (dist < c.radius) {
-            c.hp--;
+          const dist = Math.hypot(a.x - pb.x, a.y - pb.y);
+          if (dist < a.radius) {
+            a.hp--;
             playerBullets.splice(j, 1);
-            if (c.hp <= 0) {
+            if (a.hp <= 0) {
               score += 60;
-              crystals.splice(i, 1);
+              aliens.splice(i, 1);
               break;
             }
           }
         }
 
         // Tabrak Player
-        const distToRocket = Math.hypot(rocket.x - c.x, rocket.y - c.y);
-        if (distToRocket < c.radius + rocket.width / 2) {
+        const distToRocket = Math.hypot(rocket.x - a.x, rocket.y - a.y);
+        if (distToRocket < a.radius + rocket.width / 2) {
           hitPlayer();
-          crystals.splice(i, 1);
+          aliens.splice(i, 1);
           continue;
         }
 
-        if (c.y - c.radius > canvas.height) crystals.splice(i, 1);
+        if (a.y - a.radius > canvas.height) aliens.splice(i, 1);
       }
     }
 
-    // --- RINTANGAN TAJAM 2: PESAWAT JET SEGITIGA ---
+    // --- RINTANGAN 2: PESAWAT JET SEGITIGA ---
     const enemyJets = [];
     const enemyLasers = [];
 
@@ -464,10 +489,10 @@
 
         ctx.save();
         ctx.translate(j.x, j.y);
-        ctx.fillStyle = '#00ff66';
+        ctx.fillStyle = '#ff00aa';
         ctx.strokeStyle = '#ffffff';
         ctx.shadowBlur = 12;
-        ctx.shadowColor = '#00ff66';
+        ctx.shadowColor = '#ff00aa';
         ctx.lineWidth = 2;
 
         ctx.beginPath();
@@ -525,7 +550,7 @@
       }
     }
 
-    // --- RINTANGAN TAJAM 3: SATELIT PERSEGI ---
+    // --- RINTANGAN 3: SATELIT PERSEGI ---
     const satellites = [];
 
     function spawnSatellite() {
@@ -551,13 +576,11 @@
         ctx.translate(s.x, s.y);
         ctx.rotate(s.angle);
 
-        // Badan Utama Persegi
         ctx.fillStyle = '#ffe600';
         ctx.shadowBlur = 12;
         ctx.shadowColor = '#ffe600';
         ctx.fillRect(-10, -10, 20, 20);
 
-        // Panel Surya Persegi Panjang
         ctx.fillStyle = '#00f0ff';
         ctx.fillRect(-32, -5, 20, 10);
         ctx.fillRect(12, -5, 20, 10);
@@ -609,7 +632,6 @@
       score += 1;
       scoreEl.innerText = Math.floor(score / 5);
 
-      // Naik Level
       const newLevel = Math.floor(score / 1200) + 1;
       if (newLevel !== level) {
         level = newLevel;
@@ -626,7 +648,7 @@
     }
 
     function restartGame() {
-      crystals.length = 0;
+      aliens.length = 0;
       enemyJets.length = 0;
       enemyLasers.length = 0;
       satellites.length = 0;
@@ -654,8 +676,8 @@
 
       updatePlayerBullets();
 
-      spawnCrystal();
-      updateCrystals();
+      spawnAlien();
+      updateAliens();
 
       spawnEnemyJet();
       updateEnemyJets();
