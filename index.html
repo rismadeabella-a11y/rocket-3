@@ -422,7 +422,7 @@
 
         ctx.restore();
 
-        // MENEMBAK ALIEN -> TAMBAH 150 POIN
+        // DAPAT SKOR JIKA MENEMBAK ALIEN SAMPAI HANCUR (+150)
         for (let j = playerBullets.length - 1; j >= 0; j--) {
           let pb = playerBullets[j];
           const dist = Math.hypot(a.x - pb.x, a.y - pb.y);
@@ -430,18 +430,18 @@
             a.hp--;
             playerBullets.splice(j, 1);
             if (a.hp <= 0) {
-              score += 150; // Langsung tambah 150 ke skor utama
+              score += 150; // SKOR BARU BERTAMBAH DI SINI
               aliens.splice(i, 1);
               break;
             }
           }
         }
 
-        // TERTABRAK ALIEN -> KURANG 250 POIN
+        // TERTABRAK ALIEN (-250 POIN)
         const distToRocket = Math.hypot(rocket.x - a.x, rocket.y - a.y);
         if (distToRocket < a.radius + rocket.width / 2) {
           hitPlayer();
-          score = Math.max(0, score - 250); // Langsung kurangi 250 (minimal 0)
+          score = Math.max(0, score - 250);
           aliens.splice(i, 1);
           continue;
         }
@@ -615,11 +615,11 @@
 
       if (rocket.invulnerable > 0) rocket.invulnerable--;
 
-      // TAMPILKAN SKOR SECARA LANGSUNG
+      // UPDATE TAMPILAN SKOR DI LAYAR (Murni dari tembakan, tidak bertambah otomatis)
       scoreEl.innerText = score;
 
-      // NAIK LEVEL SETIAP 1000 POIN
-      const newLevel = Math.floor(score / 1000) + 1;
+      // NAIK LEVEL SETIAP KELIPATAN 500 POIN
+      const newLevel = Math.floor(score / 500) + 1;
       if (newLevel !== level) {
         level = newLevel;
         levelEl.innerText = level;
