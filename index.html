@@ -2,19 +2,21 @@
 <html lang="id">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
   <title>Space Courier: Astro Delivery</title>
   <style>
     * {
       margin: 0;
       padding: 0;
       box-sizing: border-box;
+      user-select: none;
     }
     body {
       background-color: #050515;
       overflow: hidden;
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
       color: #fff;
+      touch-action: none;
     }
     #gameCanvas {
       display: block;
@@ -23,11 +25,45 @@
     }
     #ui {
       position: absolute;
-      top: 20px;
-      left: 20px;
-      font-size: 20px;
+      top: 15px;
+      left: 15px;
+      font-size: 18px;
       font-weight: bold;
       text-shadow: 0 0 8px #00f0ff;
+      z-index: 10;
+    }
+    /* Tombol Kontrol Layar Sentuh / HP */
+    #touch-controls {
+      position: absolute;
+      bottom: 25px;
+      left: 0;
+      width: 100%;
+      display: flex;
+      justify-content: space-around;
+      padding: 0 20px;
+      z-index: 10;
+    }
+    .btn {
+      background: rgba(0, 240, 255, 0.2);
+      border: 2px solid #00f0ff;
+      color: #fff;
+      font-size: 20px;
+      font-weight: bold;
+      padding: 15px 25px;
+      border-radius: 50px;
+      box-shadow: 0 0 10px #00f0ff;
+      touch-action: manipulation;
+    }
+    .btn:active {
+      background: rgba(0, 240, 255, 0.6);
+    }
+    #btn-shoot {
+      background: rgba(255, 0, 85, 0.3);
+      border-color: #ff0055;
+      box-shadow: 0 0 10px #ff0055;
+    }
+    #btn-shoot:active {
+      background: rgba(255, 0, 85, 0.7);
     }
     #game-over {
       display: none;
@@ -41,15 +77,16 @@
       border: 2px solid #ff0055;
       border-radius: 12px;
       box-shadow: 0 0 20px #ff0055;
+      z-index: 20;
     }
     #game-over h1 {
       color: #ff0055;
-      font-size: 36px;
+      font-size: 32px;
       margin-bottom: 10px;
     }
     #game-over button {
       margin-top: 15px;
-      padding: 10px 20px;
+      padding: 12px 24px;
       background: #00f0ff;
       border: none;
       color: #000;
@@ -66,9 +103,16 @@
     Skor: <span id="score">0</span> | Nyawa: <span id="lives">3</span>
   </div>
 
+  <!-- Tombol Sentuh / Klik -->
+  <div id="touch-controls">
+    <button class="btn" id="btn-left">◄ KIRI</button>
+    <button class="btn" id="btn-shoot">🔥 TEMBAK</button>
+    <button class="btn" id="btn-right">KANAN ►</button>
+  </div>
+
   <div id="game-over">
     <h1>Misi Gagal!</h1>
-    <p>Roket kamu hancur diserang alien!</p>
+    <p>Roket kamu hancur!</p>
     <p>Skor Akhir: <span id="final-score">0</span></p>
     <button onclick="restartGame()">Coba Lagi</button>
   </div>
@@ -93,7 +137,7 @@
 
     // --- LATAR BELAKANG ---
     const stars = [];
-    for (let i = 0; i < 150; i++) {
+    for (let i = 0; i < 120; i++) {
       stars.push({
         x: Math.random() * canvas.width,
         y: Math.random() * canvas.height,
@@ -121,15 +165,57 @@
       });
     }
 
-    // --- ROKET ---
+    // --- ROKET & KONTROL ---
     const rocket = {
       x: canvas.width / 2,
-      y: canvas.height - 120,
-      width: 30,
-      height: 60,
+      y: canvas.height - 130,
+      width: 34,
+      height: 65,
       speed: 8,
-      invulnerable: 0
+      invulnerable: 0,
+      lastShot: 0
     };
+
+    let moveLeft = false;
+    let moveRight = false;
+
+    // Listener Keyboard Kompatibel (Mendukung Huruf Besar, Kecil, & Panah)
+    window.addEventListener('keydown', e => {
+      const k = e.key.toLowerCase();
+      if (k === 'arrowleft' || k === 'a') moveLeft = true;
+      if (k === 'arrowright' || k === 'd') moveRight = true;
+      if (e.code === 'Space' || k === ' ' || k === 'w' || k === 'arrowup') {
+        e.preventDefault();
+        shoot();
+      }
+    });
+
+    window.addEventListener('keyup', e => {
+      const k = e.key.toLowerCase();
+      if (k === 'arrowleft' || k === 'a') moveLeft = false;
+      if (k === 'arrowright' || k === 'd') moveRight = false;
+    });
+
+    // Listener Tombol Layar (HP / Mouse)
+    const btnLeft = document.getElementById('btn-left');
+    const btnRight = document.getElementById('btn-right');
+    const btnShoot = document.getElementById('btn-shoot');
+
+    const addControl = (el, startFn, endFn) => {
+      el.addEventListener('touchstart', e => { e.preventDefault(); startFn(); });
+      el.addEventListener('touchend', e => { e.preventDefault(); endFn(); });
+      el.addEventListener('mousedown', startFn);
+      el.addEventListener('mouseup', endFn);
+      el.addEventListener('mouseleave', endFn);
+    };
+
+    addControl(btnLeft, () => moveLeft = true, () => moveLeft = false);
+    addControl(btnRight, () => moveRight = true, () => moveRight = false);
+    btnShoot.addEventListener('touchstart', e => { e.preventDefault(); shoot(); });
+    btnShoot.addEventListener('click', shoot);
+
+    // --- PELURU PLAYER ---
+    const playerBullets = [];
 
     function drawRocket() {
       if (rocket.invulnerable > 0 && Math.floor(Date.now() / 100) % 2 === 0) return;
@@ -148,7 +234,7 @@
       ctx.closePath();
       ctx.fill();
 
-      // Badan
+      // Badan Roket
       ctx.fillStyle = '#e0e0e0';
       ctx.shadowBlur = 10;
       ctx.shadowColor = '#00f0ff';
@@ -159,7 +245,7 @@
       ctx.closePath();
       ctx.fill();
 
-      // Jendela
+      // Jendela Roket
       ctx.fillStyle = '#00f0ff';
       ctx.beginPath();
       ctx.arc(0, -5, 6, 0, Math.PI * 2);
@@ -168,29 +254,57 @@
       ctx.restore();
     }
 
+    function shoot() {
+      if (isGameOver) return;
+      const now = Date.now();
+      if (now - rocket.lastShot > 180) {
+        playerBullets.push({
+          x: rocket.x,
+          y: rocket.y - rocket.height / 2,
+          speed: 12
+        });
+        rocket.lastShot = now;
+      }
+    }
+
+    function updatePlayerBullets() {
+      for (let i = playerBullets.length - 1; i >= 0; i--) {
+        let b = playerBullets[i];
+        b.y -= b.speed;
+
+        ctx.save();
+        ctx.fillStyle = '#00f0ff';
+        ctx.shadowBlur = 10;
+        ctx.shadowColor = '#00f0ff';
+        ctx.fillRect(b.x - 2.5, b.y, 5, 14);
+        ctx.restore();
+
+        if (b.y < -10) playerBullets.splice(i, 1);
+      }
+    }
+
     function hitPlayer() {
       if (rocket.invulnerable > 0) return;
       lives--;
       livesEl.innerText = lives;
-      rocket.invulnerable = 60; // Kebal sementara setelah kena hit
+      rocket.invulnerable = 60;
 
-      if (lives <= 0) {
-        endGame();
-      }
+      if (lives <= 0) endGame();
     }
 
     // --- TANTANGAN: ALIEN UFO & LASER ---
     const ufos = [];
-    const lasers = [];
+    const enemyLasers = [];
 
     function spawnUFO() {
-      if (Math.random() < 0.01 && ufos.length < 3) {
+      if (Math.random() < 0.018 && ufos.length < 4) {
         const fromLeft = Math.random() < 0.5;
         ufos.push({
           x: fromLeft ? -40 : canvas.width + 40,
-          y: Math.random() * (canvas.height / 3) + 50,
-          speed: (Math.random() * 2 + 2) * (fromLeft ? 1 : -1),
-          radius: 20
+          y: Math.random() * (canvas.height / 3.5) + 60,
+          speed: (Math.random() * 2 + 2.5) * (fromLeft ? 1 : -1),
+          radius: 22,
+          hp: 2
         });
       }
     }
@@ -200,7 +314,7 @@
         let u = ufos[i];
         u.x += u.speed;
 
-        // Gambar UFO Alien
+        // Gambar Alien UFO
         ctx.save();
         ctx.fillStyle = '#39ff14';
         ctx.shadowBlur = 15;
@@ -209,31 +323,43 @@
         ctx.ellipse(u.x, u.y, u.radius, u.radius / 2, 0, 0, Math.PI * 2);
         ctx.fill();
 
-        // Kubah Alien
         ctx.fillStyle = '#00ffff';
         ctx.beginPath();
         ctx.arc(u.x, u.y - 4, 8, 0, Math.PI, true);
         ctx.fill();
         ctx.restore();
 
-        // Alien Menembak Laser
+        // Alien Menembak Laser Merah
         if (Math.random() < 0.02) {
-          lasers.push({ x: u.x, y: u.y + 10, speed: 6 });
+          enemyLasers.push({ x: u.x, y: u.y + 10, speed: 6 });
         }
 
-        // Hapus UFO jika keluar layar
+        // Tembakan Player Kena Alien
+        for (let j = playerBullets.length - 1; j >= 0; j--) {
+          let pb = playerBullets[j];
+          const dist = Math.hypot(u.x - pb.x, u.y - pb.y);
+          if (dist < u.radius + 5) {
+            u.hp--;
+            playerBullets.splice(j, 1);
+            if (u.hp <= 0) {
+              score += 200;
+              ufos.splice(i, 1);
+              break;
+            }
+          }
+        }
+
         if ((u.speed > 0 && u.x > canvas.width + 50) || (u.speed < 0 && u.x < -50)) {
           ufos.splice(i, 1);
         }
       }
     }
 
-    function updateLasers() {
-      for (let i = lasers.length - 1; i >= 0; i--) {
-        let l = lasers[i];
+    function updateEnemyLasers() {
+      for (let i = enemyLasers.length - 1; i >= 0; i--) {
+        let l = enemyLasers[i];
         l.y += l.speed;
 
-        // Gambar Laser
         ctx.save();
         ctx.fillStyle = '#ff0055';
         ctx.shadowBlur = 10;
@@ -241,27 +367,75 @@
         ctx.fillRect(l.x - 2, l.y, 4, 15);
         ctx.restore();
 
-        // Tabrakan Laser dengan Roket
         const dist = Math.hypot(rocket.x - l.x, rocket.y - l.y);
-        if (dist < rocket.width / 2) {
+        if (dist < rocket.width / 1.8) {
           hitPlayer();
-          lasers.splice(i, 1);
+          enemyLasers.splice(i, 1);
           continue;
         }
 
-        if (l.y > canvas.height) lasers.splice(i, 1);
+        if (l.y > canvas.height) enemyLasers.splice(i, 1);
       }
     }
 
-    // --- KONTROL & GAMELOOP ---
-    let keys = {};
-    window.addEventListener('keydown', e => keys[e.key] = true);
-    window.addEventListener('keyup', e => keys[e.key] = false);
+    // --- TANTANGAN: METEOR JATUH ---
+    const meteors = [];
+    function spawnMeteor() {
+      if (Math.random() < 0.035) {
+        const radius = Math.random() * 20 + 15;
+        meteors.push({
+          x: Math.random() * (canvas.width - radius * 2) + radius,
+          y: -radius,
+          radius: radius,
+          speed: Math.random() * 3 + 3
+        });
+      }
+    }
 
+    function updateMeteors() {
+      for (let i = meteors.length - 1; i >= 0; i--) {
+        let m = meteors[i];
+        m.y += m.speed;
+
+        ctx.save();
+        ctx.fillStyle = '#ff5500';
+        ctx.shadowBlur = 10;
+        ctx.shadowColor = '#ff2200';
+        ctx.beginPath();
+        ctx.arc(m.x, m.y, m.radius, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+
+        // Tembak Meteor
+        for (let j = playerBullets.length - 1; j >= 0; j--) {
+          let pb = playerBullets[j];
+          const dist = Math.hypot(m.x - pb.x, m.y - pb.y);
+          if (dist < m.radius) {
+            score += 50;
+            meteors.splice(i, 1);
+            playerBullets.splice(j, 1);
+            break;
+          }
+        }
+
+        // Tabrak Meteor
+        const distToRocket = Math.hypot(rocket.x - m.x, rocket.y - m.y);
+        if (distToRocket < m.radius + rocket.width / 2) {
+          hitPlayer();
+          meteors.splice(i, 1);
+          continue;
+        }
+
+        if (m.y - m.radius > canvas.height) meteors.splice(i, 1);
+      }
+    }
+
+    // --- UPDATE LOKASI & GAMELOOP ---
     function update() {
-      if (keys['ArrowLeft'] || keys['a']) rocket.x -= rocket.speed;
-      if (keys['ArrowRight'] || keys['d']) rocket.x += rocket.speed;
+      if (moveLeft) rocket.x -= rocket.speed;
+      if (moveRight) rocket.x += rocket.speed;
 
+      // Pembatas Layar
       if (rocket.x - rocket.width / 2 < 0) rocket.x = rocket.width / 2;
       if (rocket.x + rocket.width / 2 > canvas.width) rocket.x = canvas.width - rocket.width / 2;
 
@@ -280,7 +454,9 @@
 
     function restartGame() {
       ufos.length = 0;
-      lasers.length = 0;
+      enemyLasers.length = 0;
+      meteors.length = 0;
+      playerBullets.length = 0;
       score = 0;
       lives = 3;
       livesEl.innerText = lives;
@@ -299,9 +475,14 @@
       update();
       drawRocket();
 
+      updatePlayerBullets();
+
       spawnUFO();
       updateUFOs();
-      updateLasers();
+      updateEnemyLasers();
+
+      spawnMeteor();
+      updateMeteors();
 
       animationId = requestAnimationFrame(gameLoop);
     }
