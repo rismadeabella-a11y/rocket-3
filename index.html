@@ -36,7 +36,7 @@
       left: 50%;
       transform: translate(-50%, -50%);
       text-align: center;
-      background: rgba(10, 5, 30, 0.9);
+      background: rgba(10, 5, 30, 0.95);
       padding: 30px;
       border: 2px solid #ff0055;
       border-radius: 12px;
@@ -62,11 +62,13 @@
 </head>
 <body>
 
-  <div id="ui">Skor: <span id="score">0</span></div>
+  <div id="ui">
+    Skor: <span id="score">0</span> | Nyawa: <span id="lives">3</span>
+  </div>
 
   <div id="game-over">
     <h1>Misi Gagal!</h1>
-    <p>Roket kamu hancur tertabrak meteor.</p>
+    <p>Roket kamu hancur diserang alien!</p>
     <p>Skor Akhir: <span id="final-score">0</span></p>
     <button onclick="restartGame()">Coba Lagi</button>
   </div>
@@ -77,6 +79,7 @@
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
     const scoreEl = document.getElementById('score');
+    const livesEl = document.getElementById('lives');
     const gameOverEl = document.getElementById('game-over');
     const finalScoreEl = document.getElementById('final-score');
 
@@ -84,6 +87,7 @@
     canvas.height = window.innerHeight;
 
     let score = 0;
+    let lives = 3;
     let isGameOver = false;
     let animationId;
 
@@ -123,10 +127,13 @@
       y: canvas.height - 120,
       width: 30,
       height: 60,
-      speed: 8
+      speed: 8,
+      invulnerable: 0
     };
 
     function drawRocket() {
+      if (rocket.invulnerable > 0 && Math.floor(Date.now() / 100) % 2 === 0) return;
+
       ctx.save();
       ctx.translate(rocket.x, rocket.y);
 
@@ -161,82 +168,88 @@
       ctx.restore();
     }
 
-    // --- TANTANGAN 1: METEOR ---
-    const meteors = [];
-    function spawnMeteor() {
-      if (Math.random() < 0.04) {
-        const radius = Math.random() * 20 + 15;
-        meteors.push({
-          x: Math.random() * (canvas.width - radius * 2) + radius,
-          y: -radius,
-          radius: radius,
-          speed: Math.random() * 3 + 3
+    function hitPlayer() {
+      if (rocket.invulnerable > 0) return;
+      lives--;
+      livesEl.innerText = lives;
+      rocket.invulnerable = 60; // Kebal sementara setelah kena hit
+
+      if (lives <= 0) {
+        endGame();
+      }
+    }
+
+    // --- TANTANGAN: ALIEN UFO & LASER ---
+    const ufos = [];
+    const lasers = [];
+
+    function spawnUFO() {
+      if (Math.random() < 0.01 && ufos.length < 3) {
+        const fromLeft = Math.random() < 0.5;
+        ufos.push({
+          x: fromLeft ? -40 : canvas.width + 40,
+          y: Math.random() * (canvas.height / 3) + 50,
+          speed: (Math.random() * 2 + 2) * (fromLeft ? 1 : -1),
+          radius: 20
         });
       }
     }
 
-    function updateMeteors() {
-      for (let i = meteors.length - 1; i >= 0; i--) {
-        let m = meteors[i];
-        m.y += m.speed;
+    function updateUFOs() {
+      for (let i = ufos.length - 1; i >= 0; i--) {
+        let u = ufos[i];
+        u.x += u.speed;
 
-        // Gambar Meteor
+        // Gambar UFO Alien
         ctx.save();
-        ctx.fillStyle = '#ff3300';
-        ctx.shadowBlur = 12;
-        ctx.shadowColor = '#ff6600';
+        ctx.fillStyle = '#39ff14';
+        ctx.shadowBlur = 15;
+        ctx.shadowColor = '#39ff14';
         ctx.beginPath();
-        ctx.arc(m.x, m.y, m.radius, 0, Math.PI * 2);
+        ctx.ellipse(u.x, u.y, u.radius, u.radius / 2, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Kubah Alien
+        ctx.fillStyle = '#00ffff';
+        ctx.beginPath();
+        ctx.arc(u.x, u.y - 4, 8, 0, Math.PI, true);
         ctx.fill();
         ctx.restore();
 
-        // Deteksi Tabrakan dengan Roket
-        const dist = Math.hypot(rocket.x - m.x, rocket.y - m.y);
-        if (dist < m.radius + rocket.width / 2) {
-          endGame();
+        // Alien Menembak Laser
+        if (Math.random() < 0.02) {
+          lasers.push({ x: u.x, y: u.y + 10, speed: 6 });
         }
 
-        if (m.y - m.radius > canvas.height) meteors.splice(i, 1);
+        // Hapus UFO jika keluar layar
+        if ((u.speed > 0 && u.x > canvas.width + 50) || (u.speed < 0 && u.x < -50)) {
+          ufos.splice(i, 1);
+        }
       }
     }
 
-    // --- TANTANGAN 2: KRISTAL KARGO ---
-    const crystals = [];
-    function spawnCrystal() {
-      if (Math.random() < 0.015) {
-        crystals.push({
-          x: Math.random() * (canvas.width - 40) + 20,
-          y: -20,
-          size: 15,
-          speed: 2.5
-        });
-      }
-    }
+    function updateLasers() {
+      for (let i = lasers.length - 1; i >= 0; i--) {
+        let l = lasers[i];
+        l.y += l.speed;
 
-    function updateCrystals() {
-      for (let i = crystals.length - 1; i >= 0; i--) {
-        let c = crystals[i];
-        c.y += c.speed;
-
-        // Gambar Kristal
+        // Gambar Laser
         ctx.save();
-        ctx.fillStyle = '#00ffff';
-        ctx.shadowBlur = 15;
-        ctx.shadowColor = '#00ffff';
-        ctx.beginPath();
-        ctx.rect(c.x - c.size / 2, c.y - c.size / 2, c.size, c.size);
-        ctx.fill();
+        ctx.fillStyle = '#ff0055';
+        ctx.shadowBlur = 10;
+        ctx.shadowColor = '#ff0055';
+        ctx.fillRect(l.x - 2, l.y, 4, 15);
         ctx.restore();
 
-        // Ambil Kristal
-        const dist = Math.hypot(rocket.x - c.x, rocket.y - c.y);
-        if (dist < c.size + rocket.width / 2) {
-          score += 150;
-          crystals.splice(i, 1);
+        // Tabrakan Laser dengan Roket
+        const dist = Math.hypot(rocket.x - l.x, rocket.y - l.y);
+        if (dist < rocket.width / 2) {
+          hitPlayer();
+          lasers.splice(i, 1);
           continue;
         }
 
-        if (c.y > canvas.height) crystals.splice(i, 1);
+        if (l.y > canvas.height) lasers.splice(i, 1);
       }
     }
 
@@ -252,6 +265,8 @@
       if (rocket.x - rocket.width / 2 < 0) rocket.x = rocket.width / 2;
       if (rocket.x + rocket.width / 2 > canvas.width) rocket.x = canvas.width - rocket.width / 2;
 
+      if (rocket.invulnerable > 0) rocket.invulnerable--;
+
       score += 1;
       scoreEl.innerText = Math.floor(score / 5);
     }
@@ -264,9 +279,11 @@
     }
 
     function restartGame() {
-      meteors.length = 0;
-      crystals.length = 0;
+      ufos.length = 0;
+      lasers.length = 0;
       score = 0;
+      lives = 3;
+      livesEl.innerText = lives;
       rocket.x = canvas.width / 2;
       isGameOver = false;
       gameOverEl.style.display = 'none';
@@ -282,11 +299,9 @@
       update();
       drawRocket();
 
-      spawnMeteor();
-      updateMeteors();
-
-      spawnCrystal();
-      updateCrystals();
+      spawnUFO();
+      updateUFOs();
+      updateLasers();
 
       animationId = requestAnimationFrame(gameLoop);
     }
