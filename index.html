@@ -354,7 +354,7 @@
       if (lives <= 0) endGame();
     }
 
-    // --- RINTANGAN 1: WAJAH ALIEN (MENGGANTIKAN KRISTAL MERAH) ---
+    // --- RINTANGAN 1: WAJAH ALIEN ---
     const aliens = [];
 
     function spawnAlien() {
@@ -434,7 +434,7 @@
 
         ctx.restore();
 
-        // Cek Peluru Player
+        // Cek Peluru Player (Menembak Alien)
         for (let j = playerBullets.length - 1; j >= 0; j--) {
           let pb = playerBullets[j];
           const dist = Math.hypot(a.x - pb.x, a.y - pb.y);
@@ -442,17 +442,18 @@
             a.hp--;
             playerBullets.splice(j, 1);
             if (a.hp <= 0) {
-              score += 60;
+              score += 150; // MENDAPATKAN 150 POIN SAAT ALIEN HANCUR
               aliens.splice(i, 1);
               break;
             }
           }
         }
 
-        // Tabrak Player
+        // Tabrak Player (Dampaknya ke Skor)
         const distToRocket = Math.hypot(rocket.x - a.x, rocket.y - a.y);
         if (distToRocket < a.radius + rocket.width / 2) {
           hitPlayer();
+          score = Math.max(0, score - 250); // MENGURANGI 250 POIN SAAT TERTABRAK ALIEN (MINIMAL 0)
           aliens.splice(i, 1);
           continue;
         }
