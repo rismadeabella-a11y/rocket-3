@@ -177,7 +177,6 @@
     let bgOffsetY = 0;
     let colorHue = 0;
 
-    // --- LATAR BELAKANG WARNA-WARNI DINAMIS ---
     function drawDynamicBackground() {
       colorHue = (colorHue + 0.3 + level * 0.1) % 360;
 
@@ -214,7 +213,6 @@
       ctx.restore();
     }
 
-    // --- ROKET PLAYER ---
     const rocket = {
       x: canvas.width / 2,
       y: canvas.height - 180,
@@ -286,7 +284,6 @@
       ctx.save();
       ctx.translate(rocket.x, rocket.y);
 
-      // Api pendorong
       ctx.fillStyle = '#ff5500';
       ctx.shadowBlur = 15;
       ctx.shadowColor = '#ff0055';
@@ -297,7 +294,6 @@
       ctx.closePath();
       ctx.fill();
 
-      // Badan roket
       ctx.fillStyle = '#ffffff';
       ctx.shadowBlur = 12;
       ctx.shadowColor = '#00f0ff';
@@ -308,7 +304,6 @@
       ctx.closePath();
       ctx.fill();
 
-      // Cockpit
       ctx.fillStyle = '#00f0ff';
       ctx.beginPath();
       ctx.moveTo(0, -15);
@@ -354,7 +349,6 @@
       if (lives <= 0) endGame();
     }
 
-    // --- RINTANGAN 1: WAJAH ALIEN ---
     const aliens = [];
 
     function spawnAlien() {
@@ -377,7 +371,6 @@
         ctx.save();
         ctx.translate(a.x, a.y);
 
-        // Kepala Alien (Bentuk Segitiga Runcing / Oval Terbalik)
         ctx.fillStyle = '#00ff44';
         ctx.strokeStyle = '#aaff00';
         ctx.lineWidth = 2;
@@ -385,16 +378,15 @@
         ctx.shadowColor = '#00ff44';
 
         ctx.beginPath();
-        ctx.moveTo(0, 25);           // Dagu Runcing
-        ctx.lineTo(-24, -10);        // Pipi Kiri
-        ctx.lineTo(-18, -25);        // Dahi Kiri
-        ctx.lineTo(18, -25);         // Dahi Kanan
-        ctx.lineTo(24, -10);         // Pipi Kanan
+        ctx.moveTo(0, 25);
+        ctx.lineTo(-24, -10);
+        ctx.lineTo(-18, -25);
+        ctx.lineTo(18, -25);
+        ctx.lineTo(24, -10);
         ctx.closePath();
         ctx.fill();
         ctx.stroke();
 
-        // Mata Kiri Alien (Besar & Miring)
         ctx.fillStyle = '#000000';
         ctx.save();
         ctx.translate(-9, -6);
@@ -402,14 +394,12 @@
         ctx.beginPath();
         ctx.ellipse(0, 0, 7, 12, 0, 0, Math.PI * 2);
         ctx.fill();
-        // Kilau Mata Kiri
         ctx.fillStyle = '#ffffff';
         ctx.beginPath();
         ctx.arc(-2, -4, 2, 0, Math.PI * 2);
         ctx.fill();
         ctx.restore();
 
-        // Mata Kanan Alien (Besar & Miring)
         ctx.fillStyle = '#000000';
         ctx.save();
         ctx.translate(9, -6);
@@ -417,14 +407,12 @@
         ctx.beginPath();
         ctx.ellipse(0, 0, 7, 12, 0, 0, Math.PI * 2);
         ctx.fill();
-        // Kilau Mata Kanan
         ctx.fillStyle = '#ffffff';
         ctx.beginPath();
         ctx.arc(-2, -4, 2, 0, Math.PI * 2);
         ctx.fill();
         ctx.restore();
 
-        // Mulut Alien
         ctx.strokeStyle = '#005511';
         ctx.lineWidth = 2;
         ctx.beginPath();
@@ -434,7 +422,7 @@
 
         ctx.restore();
 
-        // Cek Peluru Player (Menembak Alien)
+        // MENEMBAK ALIEN -> TAMBAH 150 POIN
         for (let j = playerBullets.length - 1; j >= 0; j--) {
           let pb = playerBullets[j];
           const dist = Math.hypot(a.x - pb.x, a.y - pb.y);
@@ -442,18 +430,18 @@
             a.hp--;
             playerBullets.splice(j, 1);
             if (a.hp <= 0) {
-              score += 150; // MENDAPATKAN 150 POIN SAAT ALIEN HANCUR
+              score += 150; // Langsung tambah 150 ke skor utama
               aliens.splice(i, 1);
               break;
             }
           }
         }
 
-        // Tabrak Player (Dampaknya ke Skor)
+        // TERTABRAK ALIEN -> KURANG 250 POIN
         const distToRocket = Math.hypot(rocket.x - a.x, rocket.y - a.y);
         if (distToRocket < a.radius + rocket.width / 2) {
           hitPlayer();
-          score = Math.max(0, score - 250); // MENGURANGI 250 POIN SAAT TERTABRAK ALIEN (MINIMAL 0)
+          score = Math.max(0, score - 250); // Langsung kurangi 250 (minimal 0)
           aliens.splice(i, 1);
           continue;
         }
@@ -462,7 +450,6 @@
       }
     }
 
-    // --- RINTANGAN 2: PESAWAT JET SEGITIGA ---
     const enemyJets = [];
     const enemyLasers = [];
 
@@ -551,7 +538,6 @@
       }
     }
 
-    // --- RINTANGAN 3: SATELIT PERSEGI ---
     const satellites = [];
 
     function spawnSatellite() {
@@ -610,7 +596,6 @@
       }
     }
 
-    // --- LOGIKA LEVEL ---
     function triggerLevelToast() {
       toastEl.innerText = `LEVEL ${level}!`;
       toastEl.style.opacity = '1';
@@ -630,10 +615,11 @@
 
       if (rocket.invulnerable > 0) rocket.invulnerable--;
 
-      score += 1;
-      scoreEl.innerText = Math.floor(score / 5);
+      // TAMPILKAN SKOR SECARA LANGSUNG
+      scoreEl.innerText = score;
 
-      const newLevel = Math.floor(score / 1200) + 1;
+      // NAIK LEVEL SETIAP 1000 POIN
+      const newLevel = Math.floor(score / 1000) + 1;
       if (newLevel !== level) {
         level = newLevel;
         levelEl.innerText = level;
@@ -643,7 +629,7 @@
 
     function endGame() {
       isGameOver = true;
-      finalScoreEl.innerText = Math.floor(score / 5);
+      finalScoreEl.innerText = score;
       gameOverEl.style.display = 'block';
       cancelAnimationFrame(animationId);
     }
@@ -659,6 +645,7 @@
       lives = 3;
       livesEl.innerText = lives;
       levelEl.innerText = level;
+      scoreEl.innerText = score;
       rocket.x = canvas.width / 2;
       rocket.y = canvas.height - 180;
       isGameOver = false;
