@@ -21,7 +21,6 @@
     #gameCanvas {
       display: block;
       margin: 0 auto;
-      background: linear-gradient(to bottom, #020012, #0d0826, #1a0b36);
     }
     #ui {
       position: absolute;
@@ -32,28 +31,27 @@
       text-shadow: 0 0 8px #00f0ff;
       z-index: 10;
     }
-    /* Tombol Kontrol Layar Sentuh / HP */
     #touch-controls {
       position: absolute;
-      bottom: 15px;
+      bottom: 20px;
       left: 50%;
       transform: translateX(-50%);
       display: flex;
-      gap: 10px;
+      gap: 15px;
       align-items: center;
       z-index: 10;
     }
     .dpad {
       display: grid;
-      grid-template-columns: repeat(3, 45px);
-      grid-template-rows: repeat(2, 45px);
-      gap: 5px;
+      grid-template-columns: repeat(3, 48px);
+      grid-template-rows: repeat(2, 48px);
+      gap: 6px;
     }
     .btn {
-      background: rgba(0, 240, 255, 0.2);
+      background: rgba(0, 240, 255, 0.25);
       border: 2px solid #00f0ff;
       color: #fff;
-      font-size: 14px;
+      font-size: 16px;
       font-weight: bold;
       border-radius: 8px;
       box-shadow: 0 0 8px #00f0ff;
@@ -63,7 +61,7 @@
       justify-content: center;
     }
     .btn:active {
-      background: rgba(0, 240, 255, 0.6);
+      background: rgba(0, 240, 255, 0.7);
     }
     #btn-up { grid-column: 2; grid-row: 1; }
     #btn-left { grid-column: 1; grid-row: 2; }
@@ -71,17 +69,16 @@
     #btn-right { grid-column: 3; grid-row: 2; }
 
     #btn-shoot {
-      background: rgba(255, 0, 85, 0.3);
+      background: rgba(255, 0, 85, 0.35);
       border: 2px solid #ff0055;
       box-shadow: 0 0 10px #ff0055;
-      height: 95px;
-      width: 70px;
-      font-size: 16px;
+      height: 102px;
+      width: 75px;
+      font-size: 20px;
       border-radius: 12px;
-      margin-left: 15px;
     }
     #btn-shoot:active {
-      background: rgba(255, 0, 85, 0.7);
+      background: rgba(255, 0, 85, 0.8);
     }
     #game-over {
       display: none;
@@ -118,10 +115,9 @@
 <body>
 
   <div id="ui">
-    Skor: <span id="score">0</span> | Nyawa: <span id="lives">3</span>
+    Level: <span id="level" style="color: #ffe600;">1</span> | Skor: <span id="score">0</span> | Nyawa: <span id="lives">3</span>
   </div>
 
-  <!-- Kontrol Sentuh D-Pad (Maju, Mundur, Kiri, Kanan) + Tembak -->
   <div id="touch-controls">
     <div class="dpad">
       <button class="btn" id="btn-up">▲</button>
@@ -134,7 +130,7 @@
 
   <div id="game-over">
     <h1>Misi Gagal!</h1>
-    <p>Roket kamu hancur!</p>
+    <p>Roket hancur oleh ancaman luar angkasa!</p>
     <p>Skor Akhir: <span id="final-score">0</span></p>
     <button onclick="restartGame()">Coba Lagi</button>
   </div>
@@ -145,6 +141,7 @@
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
     const scoreEl = document.getElementById('score');
+    const levelEl = document.getElementById('level');
     const livesEl = document.getElementById('lives');
     const gameOverEl = document.getElementById('game-over');
     const finalScoreEl = document.getElementById('final-score');
@@ -153,24 +150,47 @@
     canvas.height = window.innerHeight;
 
     let score = 0;
+    let level = 1;
     let lives = 3;
     let isGameOver = false;
     let animationId;
 
-    // --- LATAR BELAKANG ---
+    // --- TEMA BACKGROUND BERDASARKAN LEVEL ---
+    const bgThemes = [
+      { top: '#020012', mid: '#0d0826', bottom: '#1a0b36' }, // Level 1: Deep Space
+      { top: '#19002e', mid: '#2b0040', bottom: '#4a004e' }, // Level 2: Purple Nebula
+      { top: '#001a2c', mid: '#00334e', bottom: '#005570' }, // Level 3: Cyber Blue
+      { top: '#2b0000', mid: '#4a0d0d', bottom: '#701c00' }, // Level 4: Solar Flare
+      { top: '#0d2b00', mid: '#1c4a00', bottom: '#2d7000' }  // Level 5+: Toxic Galaxy
+    ];
+
+    function drawDynamicBackground() {
+      const themeIndex = Math.min(level - 1, bgThemes.length - 1);
+      const theme = bgThemes[themeIndex];
+
+      const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+      gradient.addColorStop(0, theme.top);
+      gradient.addColorStop(0.5, theme.mid);
+      gradient.addColorStop(1, theme.bottom);
+
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
+
+    // --- BINTANG LATAR BELAKANG ---
     const stars = [];
-    for (let i = 0; i < 120; i++) {
+    for (let i = 0; i < 130; i++) {
       stars.push({
         x: Math.random() * canvas.width,
         y: Math.random() * canvas.height,
         radius: Math.random() * 1.8 + 0.5,
         alpha: Math.random(),
         speed: Math.random() * 0.02 + 0.005,
-        color: ['#ffffff', '#00f0ff', '#ff00ea'][Math.floor(Math.random() * 3)]
+        color: ['#ffffff', '#00f0ff', '#ff00ea', '#ffe600'][Math.floor(Math.random() * 4)]
       });
     }
 
-    function drawBackground() {
+    function drawStars() {
       stars.forEach(star => {
         star.alpha += star.speed;
         if (star.alpha > 1 || star.alpha < 0) star.speed = -star.speed;
@@ -178,8 +198,6 @@
         ctx.save();
         ctx.globalAlpha = Math.abs(star.alpha);
         ctx.fillStyle = star.color;
-        ctx.shadowBlur = 10;
-        ctx.shadowColor = star.color;
         ctx.beginPath();
         ctx.arc(star.x, star.y, star.radius, 0, Math.PI * 2);
         ctx.fill();
@@ -187,33 +205,27 @@
       });
     }
 
-    // --- ROKET & KONTROL 4 ARAH ---
+    // --- ROKET PLAYER ---
     const rocket = {
       x: canvas.width / 2,
-      y: canvas.height - 150,
-      width: 34,
-      height: 65,
-      speed: 7,
+      y: canvas.height - 180,
+      width: 36,
+      height: 68,
+      speed: 8,
       invulnerable: 0,
       lastShot: 0
     };
 
-    let moveLeft = false;
-    let moveRight = false;
-    let moveUp = false;
-    let moveDown = false;
+    let moveLeft = false, moveRight = false, moveUp = false, moveDown = false;
+    let isDragging = false;
 
-    // Listener Keyboard
     window.addEventListener('keydown', e => {
       const k = e.key.toLowerCase();
       if (k === 'arrowleft' || k === 'a') moveLeft = true;
       if (k === 'arrowright' || k === 'd') moveRight = true;
       if (k === 'arrowup' || k === 'w') moveUp = true;
       if (k === 'arrowdown' || k === 's') moveDown = true;
-      if (e.code === 'Space' || k === ' ') {
-        e.preventDefault();
-        shoot();
-      }
+      if (e.code === 'Space' || k === ' ') { e.preventDefault(); shoot(); }
     });
 
     window.addEventListener('keyup', e => {
@@ -224,25 +236,39 @@
       if (k === 'arrowdown' || k === 's') moveDown = false;
     });
 
-    // Listener Tombol Sentuh / Mouse
-    const addControl = (el, startFn, endFn) => {
-      el.addEventListener('touchstart', e => { e.preventDefault(); startFn(); });
-      el.addEventListener('touchend', e => { e.preventDefault(); endFn(); });
-      el.addEventListener('mousedown', startFn);
-      el.addEventListener('mouseup', endFn);
-      el.addEventListener('mouseleave', endFn);
+    function handlePointerMove(e) {
+      if (!isDragging || isGameOver) return;
+      const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+      const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+      rocket.x = clientX;
+      rocket.y = clientY - 30;
+    }
+
+    canvas.addEventListener('touchstart', (e) => { isDragging = true; handlePointerMove(e); });
+    canvas.addEventListener('touchmove', handlePointerMove);
+    canvas.addEventListener('touchend', () => isDragging = false);
+    canvas.addEventListener('mousedown', (e) => { isDragging = true; handlePointerMove(e); });
+    canvas.addEventListener('mousemove', handlePointerMove);
+    canvas.addEventListener('mouseup', () => isDragging = false);
+
+    const bindBtn = (id, startAction, endAction) => {
+      const el = document.getElementById(id);
+      el.addEventListener('touchstart', e => { e.preventDefault(); startAction(); });
+      el.addEventListener('touchend', e => { e.preventDefault(); endAction(); });
+      el.addEventListener('mousedown', startAction);
+      el.addEventListener('mouseup', endAction);
+      el.addEventListener('mouseleave', endAction);
     };
 
-    addControl(document.getElementById('btn-left'), () => moveLeft = true, () => moveLeft = false);
-    addControl(document.getElementById('btn-right'), () => moveRight = true, () => moveRight = false);
-    addControl(document.getElementById('btn-up'), () => moveUp = true, () => moveUp = false);
-    addControl(document.getElementById('btn-down'), () => moveDown = true, () => moveDown = false);
+    bindBtn('btn-up', () => moveUp = true, () => moveUp = false);
+    bindBtn('btn-down', () => moveDown = true, () => moveDown = false);
+    bindBtn('btn-left', () => moveLeft = true, () => moveLeft = false);
+    bindBtn('btn-right', () => moveRight = true, () => moveRight = false);
 
     const btnShoot = document.getElementById('btn-shoot');
     btnShoot.addEventListener('touchstart', e => { e.preventDefault(); shoot(); });
     btnShoot.addEventListener('click', shoot);
 
-    // --- PELURU PLAYER ---
     const playerBullets = [];
 
     function drawRocket() {
@@ -251,7 +277,6 @@
       ctx.save();
       ctx.translate(rocket.x, rocket.y);
 
-      // Api Ekor
       ctx.fillStyle = '#ff5500';
       ctx.shadowBlur = 15;
       ctx.shadowColor = '#ff0055';
@@ -262,7 +287,6 @@
       ctx.closePath();
       ctx.fill();
 
-      // Badan Roket
       ctx.fillStyle = '#e0e0e0';
       ctx.shadowBlur = 10;
       ctx.shadowColor = '#00f0ff';
@@ -273,10 +297,9 @@
       ctx.closePath();
       ctx.fill();
 
-      // Jendela Roket
       ctx.fillStyle = '#00f0ff';
       ctx.beginPath();
-      ctx.arc(0, -5, 6, 0, Math.PI * 2);
+      ctx.arc(0, -6, 7, 0, Math.PI * 2);
       ctx.fill();
 
       ctx.restore();
@@ -285,12 +308,8 @@
     function shoot() {
       if (isGameOver) return;
       const now = Date.now();
-      if (now - rocket.lastShot > 180) {
-        playerBullets.push({
-          x: rocket.x,
-          y: rocket.y - rocket.height / 2,
-          speed: 12
-        });
+      if (now - rocket.lastShot > 160) {
+        playerBullets.push({ x: rocket.x, y: rocket.y - rocket.height / 2, speed: 13 });
         rocket.lastShot = now;
       }
     }
@@ -316,23 +335,22 @@
       lives--;
       livesEl.innerText = lives;
       rocket.invulnerable = 60;
-
       if (lives <= 0) endGame();
     }
 
-    // --- TANTANGAN: ALIEN UFO & LASER ---
+    // --- RINTANGAN 1: UFO ALIEN ---
     const ufos = [];
     const enemyLasers = [];
 
     function spawnUFO() {
-      if (Math.random() < 0.018 && ufos.length < 4) {
+      if (Math.random() < 0.015 + level * 0.003 && ufos.length < 3 + level) {
         const fromLeft = Math.random() < 0.5;
         ufos.push({
           x: fromLeft ? -40 : canvas.width + 40,
-          y: Math.random() * (canvas.height / 3.5) + 60,
-          speed: (Math.random() * 2 + 2.5) * (fromLeft ? 1 : -1),
+          y: Math.random() * (canvas.height / 3) + 60,
+          speed: (Math.random() * 2 + 2 + level * 0.5) * (fromLeft ? 1 : -1),
           radius: 22,
-          hp: 2
+          hp: 2 + Math.floor(level / 2)
         });
       }
     }
@@ -356,8 +374,8 @@
         ctx.fill();
         ctx.restore();
 
-        if (Math.random() < 0.02) {
-          enemyLasers.push({ x: u.x, y: u.y + 10, speed: 6 });
+        if (Math.random() < 0.02 + level * 0.005) {
+          enemyLasers.push({ x: u.x, y: u.y + 10, speed: 6 + level * 0.5 });
         }
 
         for (let j = playerBullets.length - 1; j >= 0; j--) {
@@ -367,7 +385,7 @@
             u.hp--;
             playerBullets.splice(j, 1);
             if (u.hp <= 0) {
-              score += 200;
+              score += 150;
               ufos.splice(i, 1);
               break;
             }
@@ -403,16 +421,20 @@
       }
     }
 
-    // --- TANTANGAN: METEOR JATUH ---
+    // --- RINTANGAN 2: METEOR biasa & METEOR EMAS ---
     const meteors = [];
+
     function spawnMeteor() {
-      if (Math.random() < 0.035) {
+      if (Math.random() < 0.03 + level * 0.005) {
+        const isGold = Math.random() < 0.2;
         const radius = Math.random() * 20 + 15;
         meteors.push({
           x: Math.random() * (canvas.width - radius * 2) + radius,
           y: -radius,
           radius: radius,
-          speed: Math.random() * 3 + 3
+          speed: Math.random() * 3 + 3 + level * 0.4,
+          isGold: isGold,
+          hp: isGold ? 3 : 1
         });
       }
     }
@@ -423,9 +445,9 @@
         m.y += m.speed;
 
         ctx.save();
-        ctx.fillStyle = '#ff5500';
-        ctx.shadowBlur = 10;
-        ctx.shadowColor = '#ff2200';
+        ctx.fillStyle = m.isGold ? '#ffe600' : '#ff5500';
+        ctx.shadowBlur = 12;
+        ctx.shadowColor = m.isGold ? '#ffe600' : '#ff2200';
         ctx.beginPath();
         ctx.arc(m.x, m.y, m.radius, 0, Math.PI * 2);
         ctx.fill();
@@ -435,10 +457,13 @@
           let pb = playerBullets[j];
           const dist = Math.hypot(m.x - pb.x, m.y - pb.y);
           if (dist < m.radius) {
-            score += 50;
-            meteors.splice(i, 1);
+            m.hp--;
             playerBullets.splice(j, 1);
-            break;
+            if (m.hp <= 0) {
+              score += m.isGold ? 200 : 50;
+              meteors.splice(i, 1);
+              break;
+            }
           }
         }
 
@@ -453,23 +478,83 @@
       }
     }
 
-    // --- UPDATE LOKASI (PERGERAKAN BEBAS 4 ARAH) ---
+    // --- RINTANGAN 3 (BARU): RANAU PLASMA (MUNCUL PADA LEVEL 2+) ---
+    const plasmaMines = [];
+
+    function spawnPlasmaMine() {
+      if (level >= 2 && Math.random() < 0.012) {
+        plasmaMines.push({
+          x: Math.random() * (canvas.width - 60) + 30,
+          y: -30,
+          radius: 18,
+          speed: Math.random() * 1.5 + 1.5,
+          pulse: 0
+        });
+      }
+    }
+
+    function updatePlasmaMines() {
+      for (let i = plasmaMines.length - 1; i >= 0; i--) {
+        let p = plasmaMines[i];
+        p.y += p.speed;
+        p.pulse += 0.08;
+
+        const currentRadius = p.radius + Math.sin(p.pulse) * 4;
+
+        ctx.save();
+        ctx.fillStyle = '#bf00ff';
+        ctx.shadowBlur = 20;
+        ctx.shadowColor = '#bf00ff';
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, currentRadius, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+
+        for (let j = playerBullets.length - 1; j >= 0; j--) {
+          let pb = playerBullets[j];
+          const dist = Math.hypot(p.x - pb.x, p.y - pb.y);
+          if (dist < currentRadius) {
+            score += 100;
+            plasmaMines.splice(i, 1);
+            playerBullets.splice(j, 1);
+            break;
+          }
+        }
+
+        const distToRocket = Math.hypot(rocket.x - p.x, rocket.y - p.y);
+        if (distToRocket < currentRadius + rocket.width / 2) {
+          hitPlayer();
+          plasmaMines.splice(i, 1);
+          continue;
+        }
+
+        if (p.y - p.radius > canvas.height) plasmaMines.splice(i, 1);
+      }
+    }
+
+    // --- UPDATE LOGIK GAME & LEVEL ---
     function update() {
       if (moveLeft) rocket.x -= rocket.speed;
       if (moveRight) rocket.x += rocket.speed;
-      if (moveUp) rocket.y -= rocket.speed;      // Maju ke atas
-      if (moveDown) rocket.y += rocket.speed;    // Mundur ke bawah
+      if (moveUp) rocket.y -= rocket.speed;
+      if (moveDown) rocket.y += rocket.speed;
 
-      // Batas Atas, Bawah, Kiri, dan Kanan Layar
       if (rocket.x - rocket.width / 2 < 0) rocket.x = rocket.width / 2;
       if (rocket.x + rocket.width / 2 > canvas.width) rocket.x = canvas.width - rocket.width / 2;
-      if (rocket.y - rocket.height / 2 < 50) rocket.y = 50 + rocket.height / 2;
-      if (rocket.y + rocket.height / 2 > canvas.height - 120) rocket.y = canvas.height - 120 - rocket.height / 2;
+      if (rocket.y - rocket.height / 2 < 40) rocket.y = 40 + rocket.height / 2;
+      if (rocket.y + rocket.height / 2 > canvas.height - 130) rocket.y = canvas.height - 130 - rocket.height / 2;
 
       if (rocket.invulnerable > 0) rocket.invulnerable--;
 
       score += 1;
       scoreEl.innerText = Math.floor(score / 5);
+
+      // Kenaikan Level setiap 300 Poin
+      const newLevel = Math.floor(score / 1500) + 1;
+      if (newLevel !== level) {
+        level = newLevel;
+        levelEl.innerText = level;
+      }
     }
 
     function endGame() {
@@ -483,12 +568,15 @@
       ufos.length = 0;
       enemyLasers.length = 0;
       meteors.length = 0;
+      plasmaMines.length = 0;
       playerBullets.length = 0;
       score = 0;
+      level = 1;
       lives = 3;
       livesEl.innerText = lives;
+      levelEl.innerText = level;
       rocket.x = canvas.width / 2;
-      rocket.y = canvas.height - 150;
+      rocket.y = canvas.height - 180;
       isGameOver = false;
       gameOverEl.style.display = 'none';
       gameLoop();
@@ -499,7 +587,8 @@
 
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      drawBackground();
+      drawDynamicBackground();
+      drawStars();
       update();
       drawRocket();
 
@@ -511,6 +600,9 @@
 
       spawnMeteor();
       updateMeteors();
+
+      spawnPlasmaMine();
+      updatePlasmaMines();
 
       animationId = requestAnimationFrame(gameLoop);
     }
