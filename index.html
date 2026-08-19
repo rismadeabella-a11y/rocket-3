@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Space Courier: Astro Delivery</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      background-color: #050515;
+      overflow: hidden;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      color: #fff;
+    }
+    #gameCanvas {
+      display: block;
+      margin: 0 auto;
+      background: linear-gradient(to bottom, #020012, #0d0826, #1a0b36);
+    }
+    #ui {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      font-size: 18px;
+      font-weight: bold;
+      text-shadow: 0 0 8px #00f0ff;
+    }
+  </style>
+</head>
+<body>
+
+  <div id="ui">Skor: <span id="score">0</span></div>
+  <canvas id="gameCanvas"></canvas>
+
+  <script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const scoreEl = document.getElementById('score');
+
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+
+    let score = 0;
+
+    // --- LATAR BELAKANG: BINTANG & DEBU KOSMIK ---
+    const stars = [];
+    const numStars = 150;
+
+    for (let i = 0; i < numStars; i++) {
+      stars.push({
+        x: Math.random() * canvas.width,
+        y: Math.random() * canvas.height,
+        radius: Math.random() * 1.8 + 0.5,
+        alpha: Math.random(),
+        speed: Math.random() * 0.02 + 0.005,
+        color: ['#ffffff', '#00f0ff', '#ff00ea'][Math.floor(Math.random() * 3)]
+      });
+    }
+
+    function drawBackground() {
+      // Efek Bintang Berkedip (Twinkle Stars)
+      stars.forEach(star => {
+        star.alpha += star.speed;
+        if (star.alpha > 1 || star.alpha < 0) {
+          star.speed = -star.speed;
+        }
+
+        ctx.save();
+        ctx.globalAlpha = Math.abs(star.alpha);
+        ctx.fillStyle = star.color;
+        ctx.shadowBlur = 10;
+        ctx.shadowColor = star.color;
+        ctx.beginPath();
+        ctx.arc(star.x, star.y, star.radius, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      });
+    }
+
+    // --- ROKET (PLAYER) ---
+    const rocket = {
+      x: canvas.width / 2,
+      y: canvas.height - 120,
+      width: 30,
+      height: 60,
+      speed: 7,
+      dx: 0
+    };
+
+    function drawRocket() {
+      ctx.save();
+      ctx.translate(rocket.x, rocket.y);
+
+      // Api Ekor Roket (Thruster Glow)
+      ctx.fillStyle = '#ff5500';
+      ctx.shadowBlur = 15;
+      ctx.shadowColor = '#ff0055';
+      ctx.beginPath();
+      ctx.moveTo(-8, rocket.height / 2);
+      ctx.lineTo(0, rocket.height / 2 + 20 + Math.random() * 10);
+      ctx.lineTo(8, rocket.height / 2);
+      ctx.closePath();
+      ctx.fill();
+
+      // Badan Roket
+      ctx.fillStyle = '#e0e0e0';
+      ctx.shadowBlur = 10;
+      ctx.shadowColor = '#00f0ff';
+      ctx.beginPath();
+      ctx.moveTo(0, -rocket.height / 2);
+      ctx.lineTo(rocket.width / 2, rocket.height / 2);
+      ctx.lineTo(-rocket.width / 2, rocket.height / 2);
+      ctx.closePath();
+      ctx.fill();
+
+      // Jendela Roket
+      ctx.fillStyle = '#00f0ff';
+      ctx.beginPath();
+      ctx.arc(0, -5, 6, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.restore();
+    }
+
+    // --- UTILS & KONTROL ---
+    let keys = {};
+
+    window.addEventListener('keydown', (e) => keys[e.key] = true);
+    window.addEventListener('keyup', (e) => keys[e.key] = false);
+
+    function update() {
+      // Pergerakan Roket
+      if (keys['ArrowLeft'] || keys['a']) {
+        rocket.x -= rocket.speed;
+      }
+      if (keys['ArrowRight'] || keys['d']) {
+        rocket.x += rocket.speed;
+      }
+
+      // Batas Layar
+      if (rocket.x - rocket.width / 2 < 0) rocket.x = rocket.width / 2;
+      if (rocket.x + rocket.width / 2 > canvas.width) rocket.x = canvas.width - rocket.width / 2;
+
+      score += 1;
+      scoreEl.innerText = Math.floor(score / 10);
+    }
+
+    function gameLoop() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      drawBackground();
+      update();
+      drawRocket();
+
+      requestAnimationFrame(gameLoop);
+    }
+
+    gameLoop();
+
+    // Responsif jika ukuran browser diubah
+    window.addEventListener('resize', () => {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    });
+  </script>
+</body>
+</html>
