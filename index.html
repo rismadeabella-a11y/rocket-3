@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>Space Courier: Alien Invasion</title>
+  <title>Space Courier: Auto Fire</title>
   <style>
     * {
       margin: 0;
@@ -60,15 +60,15 @@
     }
     .dpad {
       display: grid;
-      grid-template-columns: repeat(3, 48px);
-      grid-template-rows: repeat(2, 48px);
+      grid-template-columns: repeat(3, 52px);
+      grid-template-rows: repeat(2, 52px);
       gap: 6px;
     }
     .btn {
       background: rgba(255, 255, 255, 0.2);
       border: 2px solid #fff;
       color: #fff;
-      font-size: 16px;
+      font-size: 18px;
       font-weight: bold;
       border-radius: 8px;
       box-shadow: 0 0 8px rgba(255,255,255,0.5);
@@ -85,18 +85,6 @@
     #btn-down { grid-column: 2; grid-row: 2; }
     #btn-right { grid-column: 3; grid-row: 2; }
 
-    #btn-shoot {
-      background: rgba(255, 0, 85, 0.5);
-      border: 2px solid #ff0055;
-      box-shadow: 0 0 12px #ff0055;
-      height: 102px;
-      width: 75px;
-      font-size: 20px;
-      border-radius: 12px;
-    }
-    #btn-shoot:active {
-      background: rgba(255, 0, 85, 0.9);
-    }
     #game-over {
       display: none;
       position: absolute;
@@ -144,7 +132,6 @@
       <button class="btn" id="btn-down">▼</button>
       <button class="btn" id="btn-right">►</button>
     </div>
-    <button class="btn" id="btn-shoot">🔥</button>
   </div>
 
   <div id="game-over">
@@ -232,7 +219,6 @@
       if (k === 'arrowright' || k === 'd') moveRight = true;
       if (k === 'arrowup' || k === 'w') moveUp = true;
       if (k === 'arrowdown' || k === 's') moveDown = true;
-      if (e.code === 'Space' || k === ' ') { e.preventDefault(); shoot(); }
     });
 
     window.addEventListener('keyup', e => {
@@ -271,10 +257,6 @@
     bindBtn('btn-down', () => moveDown = true, () => moveDown = false);
     bindBtn('btn-left', () => moveLeft = true, () => moveLeft = false);
     bindBtn('btn-right', () => moveRight = true, () => moveRight = false);
-
-    const btnShoot = document.getElementById('btn-shoot');
-    btnShoot.addEventListener('touchstart', e => { e.preventDefault(); shoot(); });
-    btnShoot.addEventListener('click', shoot);
 
     const playerBullets = [];
 
@@ -319,7 +301,8 @@
     function shoot() {
       if (isGameOver) return;
       const now = Date.now();
-      if (now - rocket.lastShot > 160) {
+      // Kecepatan tembak otomatis (setiap 140ms)
+      if (now - rocket.lastShot > 140) {
         playerBullets.push({ x: rocket.x, y: rocket.y - rocket.height / 2, speed: 14 });
         rocket.lastShot = now;
       }
@@ -422,7 +405,6 @@
 
         ctx.restore();
 
-        // DAPAT SKOR JIKA MENEMBAK ALIEN SAMPAI HANCUR (+150)
         for (let j = playerBullets.length - 1; j >= 0; j--) {
           let pb = playerBullets[j];
           const dist = Math.hypot(a.x - pb.x, a.y - pb.y);
@@ -430,14 +412,13 @@
             a.hp--;
             playerBullets.splice(j, 1);
             if (a.hp <= 0) {
-              score += 150; // SKOR BARU BERTAMBAH DI SINI
+              score += 150;
               aliens.splice(i, 1);
               break;
             }
           }
         }
 
-        // TERTABRAK ALIEN (-250 POIN)
         const distToRocket = Math.hypot(rocket.x - a.x, rocket.y - a.y);
         if (distToRocket < a.radius + rocket.width / 2) {
           hitPlayer();
@@ -603,6 +584,9 @@
     }
 
     function update() {
+      // TEMBAK OTOMATIS BERJALAN TERUS-MENERUS
+      shoot();
+
       if (moveLeft) rocket.x -= rocket.speed;
       if (moveRight) rocket.x += rocket.speed;
       if (moveUp) rocket.y -= rocket.speed;
@@ -611,14 +595,12 @@
       if (rocket.x - rocket.width / 2 < 0) rocket.x = rocket.width / 2;
       if (rocket.x + rocket.width / 2 > canvas.width) rocket.x = canvas.width - rocket.width / 2;
       if (rocket.y - rocket.height / 2 < 40) rocket.y = 40 + rocket.height / 2;
-      if (rocket.y + rocket.height / 2 > canvas.height - 130) rocket.y = canvas.height - 130 - rocket.height / 2;
+      if (rocket.y + rocket.height / 2 > canvas.height - 100) rocket.y = canvas.height - 100 - rocket.height / 2;
 
       if (rocket.invulnerable > 0) rocket.invulnerable--;
 
-      // UPDATE TAMPILAN SKOR DI LAYAR (Murni dari tembakan, tidak bertambah otomatis)
       scoreEl.innerText = score;
 
-      // NAIK LEVEL SETIAP KELIPATAN 500 POIN
       const newLevel = Math.floor(score / 500) + 1;
       if (newLevel !== level) {
         level = newLevel;
