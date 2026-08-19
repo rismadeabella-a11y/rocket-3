@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>Space Courier: Angular Challenge</title>
+  <title>Space Courier: Colorful Edition</title>
   <style>
     * {
       margin: 0;
@@ -12,7 +12,7 @@
       user-select: none;
     }
     body {
-      background-color: #050515;
+      background-color: #000;
       overflow: hidden;
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
       color: #fff;
@@ -28,18 +28,21 @@
       left: 15px;
       font-size: 18px;
       font-weight: bold;
-      text-shadow: 0 0 8px #00f0ff;
+      text-shadow: 0 0 10px #ffffff;
       z-index: 10;
+      background: rgba(0, 0, 0, 0.5);
+      padding: 8px 15px;
+      border-radius: 8px;
     }
     #level-toast {
       position: absolute;
       top: 40%;
       left: 50%;
       transform: translate(-50%, -50%);
-      font-size: 36px;
+      font-size: 38px;
       font-weight: 900;
-      color: #ffe600;
-      text-shadow: 0 0 20px #ffe600;
+      color: #fff;
+      text-shadow: 0 0 20px #00f0ff, 0 0 40px #ff00ff;
       opacity: 0;
       transition: opacity 0.4s ease-in-out;
       pointer-events: none;
@@ -62,20 +65,20 @@
       gap: 6px;
     }
     .btn {
-      background: rgba(0, 240, 255, 0.25);
-      border: 2px solid #00f0ff;
+      background: rgba(255, 255, 255, 0.2);
+      border: 2px solid #fff;
       color: #fff;
       font-size: 16px;
       font-weight: bold;
       border-radius: 8px;
-      box-shadow: 0 0 8px #00f0ff;
+      box-shadow: 0 0 8px rgba(255,255,255,0.5);
       touch-action: manipulation;
       display: flex;
       align-items: center;
       justify-content: center;
     }
     .btn:active {
-      background: rgba(0, 240, 255, 0.7);
+      background: rgba(255, 255, 255, 0.6);
     }
     #btn-up { grid-column: 2; grid-row: 1; }
     #btn-left { grid-column: 1; grid-row: 2; }
@@ -83,16 +86,16 @@
     #btn-right { grid-column: 3; grid-row: 2; }
 
     #btn-shoot {
-      background: rgba(255, 0, 85, 0.35);
+      background: rgba(255, 0, 85, 0.5);
       border: 2px solid #ff0055;
-      box-shadow: 0 0 10px #ff0055;
+      box-shadow: 0 0 12px #ff0055;
       height: 102px;
       width: 75px;
       font-size: 20px;
       border-radius: 12px;
     }
     #btn-shoot:active {
-      background: rgba(255, 0, 85, 0.8);
+      background: rgba(255, 0, 85, 0.9);
     }
     #game-over {
       display: none;
@@ -105,7 +108,7 @@
       padding: 30px;
       border: 2px solid #ff0055;
       border-radius: 12px;
-      box-shadow: 0 0 20px #ff0055;
+      box-shadow: 0 0 25px #ff0055;
       z-index: 20;
     }
     #game-over h1 {
@@ -172,36 +175,33 @@
     let isGameOver = false;
     let animationId;
     let bgOffsetY = 0;
+    let colorHue = 0;
 
-    // --- TEMA BACKGROUND DAN KISI WARP BERDASARKAN LEVEL ---
-    const bgThemes = [
-      { bg1: '#05021a', bg2: '#0f0838', grid: '#00f0ff', name: 'CYBER MATRIX' },
-      { bg1: '#1f0015', bg2: '#40002b', grid: '#ff00aa', name: 'NEON NEBULA' },
-      { bg1: '#001b24', bg2: '#003d36', grid: '#00ffaa', name: 'GREEN GRID' },
-      { bg1: '#260c00', bg2: '#4a1d00', grid: '#ffe600', name: 'SOLAR STORM' },
-      { bg1: '#1a0033', bg2: '#330066', grid: '#b300ff', name: 'VOID REALM' }
-    ];
-
+    // --- LATAR BELAKANG WARNA-WARNI DINAMIS ---
     function drawDynamicBackground() {
-      const themeIndex = Math.min(level - 1, bgThemes.length - 1);
-      const theme = bgThemes[themeIndex];
+      // Warna berganti terus secara halus menggunakan HSL
+      colorHue = (colorHue + 0.3 + level * 0.1) % 360;
 
-      // Gradien Latar
+      const mainColor = `hsl(${colorHue}, 70%, 15%)`;
+      const secondaryColor = `hsl(${(colorHue + 60) % 360}, 80%, 8%)`;
+      const gridColor = `hsl(${(colorHue + 180) % 360}, 100%, 50%)`;
+
+      // Gradien Latar Belakang BERWARNA
       const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
-      gradient.addColorStop(0, theme.bg1);
-      gradient.addColorStop(1, theme.bg2);
+      gradient.addColorStop(0, mainColor);
+      gradient.addColorStop(1, secondaryColor);
       ctx.fillStyle = gradient;
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-      // Garis Kecepatan Warp (Perspektif Persegi)
+      // Kisi-kisi Neon Bergerak Berwarna
       ctx.save();
-      ctx.strokeStyle = theme.grid;
-      ctx.globalAlpha = 0.18;
-      ctx.lineWidth = 1.5;
+      ctx.strokeStyle = gridColor;
+      ctx.globalAlpha = 0.25;
+      ctx.lineWidth = 2;
 
       bgOffsetY = (bgOffsetY + 2 + level) % 40;
 
-      for (let x = 0; x < canvas.width; x += 50) {
+      for (let x = 0; x < canvas.width; x += 45) {
         ctx.beginPath();
         ctx.moveTo(x, 0);
         ctx.lineTo(x, canvas.height);
@@ -301,8 +301,8 @@
       ctx.fill();
 
       // Badan roket tajam
-      ctx.fillStyle = '#e0e0e0';
-      ctx.shadowBlur = 10;
+      ctx.fillStyle = '#ffffff';
+      ctx.shadowBlur = 12;
       ctx.shadowColor = '#00f0ff';
       ctx.beginPath();
       ctx.moveTo(0, -rocket.height / 2);
@@ -311,7 +311,7 @@
       ctx.closePath();
       ctx.fill();
 
-      // Kaca cockpit belah ketupat
+      // Cockpit belah ketupat
       ctx.fillStyle = '#00f0ff';
       ctx.beginPath();
       ctx.moveTo(0, -15);
@@ -328,7 +328,7 @@
       if (isGameOver) return;
       const now = Date.now();
       if (now - rocket.lastShot > 160) {
-        playerBullets.push({ x: rocket.x, y: rocket.y - rocket.height / 2, speed: 13 });
+        playerBullets.push({ x: rocket.x, y: rocket.y - rocket.height / 2, speed: 14 });
         rocket.lastShot = now;
       }
     }
@@ -339,10 +339,10 @@
         b.y -= b.speed;
 
         ctx.save();
-        ctx.fillStyle = '#00f0ff';
+        ctx.fillStyle = '#00ffff';
         ctx.shadowBlur = 10;
-        ctx.shadowColor = '#00f0ff';
-        ctx.fillRect(b.x - 2.5, b.y, 5, 14);
+        ctx.shadowColor = '#00ffff';
+        ctx.fillRect(b.x - 3, b.y, 6, 16);
         ctx.restore();
 
         if (b.y < -10) playerBullets.splice(i, 1);
@@ -357,7 +357,7 @@
       if (lives <= 0) endGame();
     }
 
-    // --- RINTANGAN 1: KRISTAL SEGI BANYAK TAJAM (Substitusi Meteor Bundar) ---
+    // --- RINTANGAN TAJAM 1: KRISTAL ---
     const crystals = [];
 
     function spawnCrystal() {
@@ -367,7 +367,7 @@
         const baseRadius = Math.random() * 15 + 20;
         for (let i = 0; i < numPoints; i++) {
           const angle = (i / numPoints) * Math.PI * 2;
-          const r = baseRadius * (0.6 + Math.random() * 0.7); // Bikin bersudut runcing
+          const r = baseRadius * (0.6 + Math.random() * 0.7);
           points.push({ x: Math.cos(angle) * r, y: Math.sin(angle) * r });
         }
 
@@ -393,10 +393,10 @@
         ctx.save();
         ctx.translate(c.x, c.y);
         ctx.rotate(c.angle);
-        ctx.strokeStyle = '#ff2200';
-        ctx.fillStyle = '#ff5500';
+        ctx.strokeStyle = '#ff3300';
+        ctx.fillStyle = '#ff6600';
         ctx.shadowBlur = 12;
-        ctx.shadowColor = '#ff2200';
+        ctx.shadowColor = '#ff3300';
         ctx.lineWidth = 2;
 
         ctx.beginPath();
@@ -409,7 +409,7 @@
         ctx.stroke();
         ctx.restore();
 
-        // Cek Tembakan Player
+        // Cek Peluru
         for (let j = playerBullets.length - 1; j >= 0; j--) {
           let pb = playerBullets[j];
           const dist = Math.hypot(c.x - pb.x, c.y - pb.y);
@@ -424,7 +424,7 @@
           }
         }
 
-        // Tabrakan ke Player
+        // Tabrak Player
         const distToRocket = Math.hypot(rocket.x - c.x, rocket.y - c.y);
         if (distToRocket < c.radius + rocket.width / 2) {
           hitPlayer();
@@ -436,7 +436,7 @@
       }
     }
 
-    // --- RINTANGAN 2: PESAWAT JET TEMPUR SEGITIGA (Substitusi UFO) ---
+    // --- RINTANGAN TAJAM 2: PESAWAT JET SEGITIGA ---
     const enemyJets = [];
     const enemyLasers = [];
 
@@ -464,13 +464,12 @@
 
         ctx.save();
         ctx.translate(j.x, j.y);
-        ctx.fillStyle = '#39ff14';
-        ctx.strokeStyle = '#00ffcc';
+        ctx.fillStyle = '#00ff66';
+        ctx.strokeStyle = '#ffffff';
         ctx.shadowBlur = 12;
-        ctx.shadowColor = '#39ff14';
+        ctx.shadowColor = '#00ff66';
         ctx.lineWidth = 2;
 
-        // Pesawat Segitiga Runcing
         ctx.beginPath();
         ctx.moveTo(0, j.height / 2);
         ctx.lineTo(-j.width / 2, -j.height / 2);
@@ -481,12 +480,10 @@
         ctx.stroke();
         ctx.restore();
 
-        // Tembak Laser Kotak
         if (Math.random() < 0.02 + level * 0.005) {
           enemyLasers.push({ x: j.x, y: j.y + 15, speed: 7 + level * 0.5 });
         }
 
-        // Kena peluru player
         for (let k = playerBullets.length - 1; k >= 0; k--) {
           let pb = playerBullets[k];
           const dist = Math.hypot(j.x - pb.x, j.y - pb.y);
@@ -528,17 +525,17 @@
       }
     }
 
-    // --- RINTANGAN 3: SATELIT DENGAN PANEL SURYA PERSEGI ---
+    // --- RINTANGAN TAJAM 3: SATELIT PERSEGI ---
     const satellites = [];
 
     function spawnSatellite() {
-      if (level >= 2 && Math.random() < 0.01) {
+      if (level >= 2 && Math.random() < 0.012) {
         satellites.push({
           x: Math.random() * (canvas.width - 80) + 40,
           y: -50,
           speed: Math.random() * 1.5 + 2,
           angle: 0,
-          rotSpeed: 0.03,
+          rotSpeed: 0.04,
           size: 24
         });
       }
@@ -560,14 +557,13 @@
         ctx.shadowColor = '#ffe600';
         ctx.fillRect(-10, -10, 20, 20);
 
-        // Panel Surya Kiri & Kanan (Persegi Panjang)
+        // Panel Surya Persegi Panjang
         ctx.fillStyle = '#00f0ff';
-        ctx.fillRect(-30, -5, 18, 10);
-        ctx.fillRect(12, -5, 18, 10);
+        ctx.fillRect(-32, -5, 20, 10);
+        ctx.fillRect(12, -5, 20, 10);
 
         ctx.restore();
 
-        // Tembak Peluru
         for (let j = playerBullets.length - 1; j >= 0; j--) {
           let pb = playerBullets[j];
           const dist = Math.hypot(s.x - pb.x, s.y - pb.y);
@@ -579,7 +575,6 @@
           }
         }
 
-        // Tabrak Player
         const distToRocket = Math.hypot(rocket.x - s.x, rocket.y - s.y);
         if (distToRocket < s.size + rocket.width / 2) {
           hitPlayer();
@@ -591,9 +586,9 @@
       }
     }
 
-    // --- LOGIKA LEVEL & UPDATE SYSTEM ---
-    function triggerLevelToast(lvlName) {
-      toastEl.innerText = `LEVEL ${level}: ${lvlName}`;
+    // --- LOGIKA LEVEL ---
+    function triggerLevelToast() {
+      toastEl.innerText = `LEVEL ${level}!`;
       toastEl.style.opacity = '1';
       setTimeout(() => { toastEl.style.opacity = '0'; }, 1800);
     }
@@ -614,13 +609,12 @@
       score += 1;
       scoreEl.innerText = Math.floor(score / 5);
 
-      // Naik Level setiap 300 Poin
-      const newLevel = Math.floor(score / 1500) + 1;
+      // Naik Level
+      const newLevel = Math.floor(score / 1200) + 1;
       if (newLevel !== level) {
         level = newLevel;
         levelEl.innerText = level;
-        const themeIndex = Math.min(level - 1, bgThemes.length - 1);
-        triggerLevelToast(bgThemes[themeIndex].name);
+        triggerLevelToast();
       }
     }
 
